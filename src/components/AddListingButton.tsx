@@ -6,7 +6,12 @@ interface AddListingButtonProps {
 
 const AddListingButton: React.FC<AddListingButtonProps> = ({ onClick }) => {
   return (
-    <button onClick={onClick} className="add-button" title="Add new listing">
+    <button
+      onClick={onClick}
+      className="add-button"
+      title="Add new listing"
+      aria-label="Add a listing"
+    >
       <svg
         style={{ width: '2rem', height: '2rem' }}
         fill="none"
