@@ -1,0 +1,55 @@
+{
+  "listings": {
+    "listing_001": {
+      "userId": "user_abc123",
+      "username": "john_doe",
+      "image": "https://example.com/images/couch_001.jpg",
+      "title": "Comfortable 3-Seater Sofa",
+      "description": "Lightly used grey fabric sofa, no stains or tears. Perfect for a living room or apartment.",
+      "furnitureType": "Sofa",
+      "price": 120,
+      "condition": "Good",
+      "location": "Chicago, IL",
+      "deliveryMethod": "Pickup",
+      "createdAt": 1717200000000
+    },
+    "listing_002": {
+      "userId": "user_xyz789",
+      "username": "jane_smith",
+      "image": "https://example.com/images/desk_001.jpg",
+      "title": "Solid Wood Desk",
+      "description": "Sturdy oak desk with two drawers. Great for a home office setup.",
+      "furnitureType": "Desk",
+      "price": 85,
+      "condition": "Like New",
+      "location": "Evanston, IL",
+      "deliveryMethod": "Delivery",
+      "createdAt": 1717250000000
+    },
+    "listing_003": {
+      "userId": "user_abc123",
+      "username": "john_doe",
+      "image": "https://example.com/images/bookshelf_001.jpg",
+      "title": "IKEA Billy Bookshelf",
+      "description": "White IKEA Billy bookshelf, 5 shelves. Minor scuff on the bottom panel.",
+      "furnitureType": "Bookshelf",
+      "price": 40,
+      "condition": "Fair",
+      "location": "Chicago, IL",
+      "deliveryMethod": "Pickup",
+      "createdAt": 1717300000000
+    }
+  },
+  "users": {
+    "user_abc123": {
+      "username": "john_doe",
+      "email": "john.doe@example.com",
+      "phone": "312-555-0101"
+    },
+    "user_xyz789": {
+      "username": "jane_smith",
+      "email": "jane.smith@example.com",
+      "phone": "847-555-0198"
+    }
+  }
+}

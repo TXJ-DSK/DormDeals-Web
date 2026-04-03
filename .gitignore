@@ -5,3 +5,7 @@ dist-ssr
 *.local
 node_modules/*
 coverage
+
+firebase.js
+
+.firebase/
