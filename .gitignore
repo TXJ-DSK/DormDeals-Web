@@ -6,6 +6,7 @@ dist-ssr
 node_modules/*
 coverage
 
-firebase.ts
+
+firebase.js
 
 .firebase/
