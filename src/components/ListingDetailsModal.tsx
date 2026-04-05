@@ -143,7 +143,7 @@ const ListingDetailsModal: React.FC<ListingDetailsModalProps> = ({
           <div className="form-group">
             <div className="form-label">Posted</div>
             <p style={{ margin: 0, color: '#6b7280' }}>
-              {listing.listDate.toLocaleDateString()}
+              {listing.createdAt.toLocaleDateString()}
             </p>
           </div>
 

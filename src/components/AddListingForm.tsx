@@ -3,11 +3,16 @@ import React, { useState } from 'react';
 import { Listing } from '../types/Listing';
 
 interface AddListingFormProps {
-  onSubmit: (listing: Omit<Listing, 'id' | 'userId' | 'listDate'>) => void;
+  onSubmit: (listing: Omit<Listing, 'id' | 'userId' | 'createdAt'>) => Promise<void>;
   onCancel: () => void;
+  isSubmitting: boolean;
 }
 
-const AddListingForm: React.FC<AddListingFormProps> = ({ onSubmit, onCancel }) => {
+const AddListingForm: React.FC<AddListingFormProps> = ({
+  onSubmit,
+  onCancel,
+  isSubmitting,
+}) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -30,9 +35,9 @@ const AddListingForm: React.FC<AddListingFormProps> = ({ onSubmit, onCancel }) =
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData as Omit<Listing, 'id' | 'userId' | 'listDate'>);
+    await onSubmit(formData as Omit<Listing, 'id' | 'userId' | 'createdAt'>);
   };
 
   return (
@@ -210,11 +215,16 @@ const AddListingForm: React.FC<AddListingFormProps> = ({ onSubmit, onCancel }) =
             </div>
 
             <div className="form-actions">
-              <button type="button" onClick={onCancel} className="btn btn-secondary">
+              <button
+                type="button"
+                onClick={onCancel}
+                className="btn btn-secondary"
+                disabled={isSubmitting}
+              >
                 Cancel
               </button>
-              <button type="submit" className="btn btn-primary">
-                Add Listing
+              <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                {isSubmitting ? 'Saving...' : 'Add Listing'}
               </button>
             </div>
           </form>

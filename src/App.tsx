@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
+import { createListing, getListings } from './api/listing';
 import AddListingButton from './components/AddListingButton';
 import AddListingForm from './components/AddListingForm';
 import ListingCard from './components/ListingCard';
@@ -20,7 +21,7 @@ const mockListings: Listing[] = [
     condition: 'Good',
     location: 'Downtown',
     deliveryMethod: 'Pickup',
-    listDate: new Date(Date.now() - 86400000), // 1 day ago
+    createdAt: new Date(Date.now() - 86400000), // 1 day ago
     userId: 'user1',
     sellerContact: 'john@u.northwestern.edu',
   },
@@ -36,7 +37,7 @@ const mockListings: Listing[] = [
     condition: 'Like New',
     location: 'Campus',
     deliveryMethod: 'Both',
-    listDate: new Date(Date.now() - 172800000), // 2 days ago
+    createdAt: new Date(Date.now() - 172800000), // 2 days ago
     userId: 'user2',
     sellerContact: 'sarah@u.northwestern.edu',
   },
@@ -52,7 +53,7 @@ const mockListings: Listing[] = [
     condition: 'Fair',
     location: 'Westside',
     deliveryMethod: 'Pickup',
-    listDate: new Date(Date.now() - 259200000), // 3 days ago
+    createdAt: new Date(Date.now() - 259200000), // 3 days ago
     userId: 'user3',
     sellerContact: 'mike@u.northwestern.edu',
   },
@@ -68,7 +69,7 @@ const mockListings: Listing[] = [
     condition: 'New',
     location: 'Eastside',
     deliveryMethod: 'Delivery',
-    listDate: new Date(Date.now() - 345600000), // 4 days ago
+    createdAt: new Date(Date.now() - 345600000), // 4 days ago
     userId: 'user4',
     sellerContact: 'alex@u.northwestern.edu',
   },
@@ -84,7 +85,7 @@ const mockListings: Listing[] = [
     condition: 'Good',
     location: 'North Campus',
     deliveryMethod: 'Both',
-    listDate: new Date(Date.now() - 432000000), // 5 days ago
+    createdAt: new Date(Date.now() - 432000000), // 5 days ago
     userId: 'user5',
     sellerContact: 'emma@u.northwestern.edu',
   },
@@ -100,14 +101,16 @@ const mockListings: Listing[] = [
     condition: 'Poor',
     location: 'Southside',
     deliveryMethod: 'Pickup',
-    listDate: new Date(Date.now() - 518400000), // 6 days ago
+    createdAt: new Date(Date.now() - 518400000), // 6 days ago
     userId: 'user6',
     sellerContact: 'david@u.northwestern.edu',
   },
 ];
 
 function App() {
-  const [listings, setListings] = useState<Listing[]>(mockListings);
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
@@ -129,6 +132,25 @@ function App() {
     'Fair',
     'Poor',
   ];
+
+  const loadListings = async () => {
+    try {
+      const dbListings = await getListings();
+      const mappedListings: Listing[] = dbListings.map((listing) => ({
+        ...listing,
+        id: listing.id ?? Date.now().toString(),
+        createdAt: listing.createdAt ? new Date(listing.createdAt) : new Date(),
+      }));
+      setListings(mappedListings);
+    } catch (error) {
+      console.error('Failed to load listings from Realtime Database:', error);
+      setListings(mockListings);
+    }
+  };
+
+  useEffect(() => {
+    void loadListings();
+  }, []);
 
   const filteredListings = listings
     .filter((listing) => {
@@ -152,22 +174,41 @@ function App() {
     })
     .slice()
     .sort((a, b) => {
-      if (sortMethod === 'newest') return b.listDate.getTime() - a.listDate.getTime();
-      if (sortMethod === 'oldest') return a.listDate.getTime() - b.listDate.getTime();
+      if (sortMethod === 'newest') return b.createdAt.getTime() - a.createdAt.getTime();
+      if (sortMethod === 'oldest') return a.createdAt.getTime() - b.createdAt.getTime();
       if (sortMethod === 'priceAsc') return a.price - b.price;
       if (sortMethod === 'priceDesc') return b.price - a.price;
       return 0;
     });
 
-  const handleAddListing = (newListing: Omit<Listing, 'id' | 'userId' | 'listDate'>) => {
+  const handleAddListing = async (
+    newListing: Omit<Listing, 'id' | 'userId' | 'createdAt'>,
+  ) => {
     const listing: Listing = {
       ...newListing,
       id: Date.now().toString(),
       userId: 'currentUser',
-      listDate: new Date(),
+      createdAt: new Date(),
     };
-    setListings((prev) => [...prev, listing]);
-    setShowAddForm(false);
+
+    try {
+      setIsSubmitting(true);
+      setSubmitError(null);
+      await createListing({
+        ...listing,
+        createdAt: listing.createdAt.getTime(),
+      });
+
+      await loadListings();
+      setShowAddForm(false);
+    } catch (error) {
+      console.error('Failed to create listing:', error);
+      setSubmitError(
+        'Could not save listing. Check Firebase Realtime Database write rules and try again.',
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -274,6 +315,13 @@ function App() {
       </header>
 
       <main className="main-content">
+        {submitError && (
+          <div className="empty-state" style={{ marginBottom: '1rem' }}>
+            <h3 className="empty-title">Save Failed</h3>
+            <p className="empty-message">{submitError}</p>
+          </div>
+        )}
+
         <div className="grid">
           {filteredListings.map((listing) => (
             <ListingCard
@@ -310,6 +358,7 @@ function App() {
         <AddListingForm
           onSubmit={handleAddListing}
           onCancel={() => setShowAddForm(false)}
+          isSubmitting={isSubmitting}
         />
       )}
 

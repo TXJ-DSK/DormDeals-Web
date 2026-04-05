@@ -55,7 +55,7 @@ const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) => {
           </span>
         </div>
         <div className="card-footer">
-          <span>{listing.listDate.toLocaleDateString()}</span>
+          <span>{listing.createdAt.toLocaleDateString()}</span>
         </div>
       </div>
     </div>

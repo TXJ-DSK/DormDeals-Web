@@ -8,7 +8,7 @@ export interface Listing {
   condition: 'New' | 'Like New' | 'Good' | 'Fair' | 'Poor';
   location: string;
   deliveryMethod: 'Pickup' | 'Delivery' | 'Both';
-  listDate: Date;
-  userId: string;
+  createdAt: Date;
+  userId?: string;
   sellerContact: string; // Email or phone for messaging seller
 }
