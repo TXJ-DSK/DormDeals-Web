@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 
 import { Listing } from '../types/Listing';
 
@@ -25,6 +25,10 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
     sellerContact: '',
   });
 
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
@@ -33,6 +37,46 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
       ...prev,
       [name]: type === 'number' ? Number(value) : value,
     }));
+  };
+
+  const handleImageFile = useCallback((file: File) => {
+    if (!file.type.startsWith('image/')) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      setImagePreview(dataUrl);
+      setFormData((prev) => ({ ...prev, image: dataUrl }));
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleImageFile(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleImageFile(file);
+  };
+
+  const handleRemoveImage = () => {
+    setImagePreview(null);
+    setFormData((prev) => ({ ...prev, image: '' }));
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -96,18 +140,115 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
             </div>
 
             <div className="form-group">
-              <label htmlFor="image" className="form-label">
-                Image URL
+              <label htmlFor="image-upload" className="form-label">
+                Image
               </label>
+
+              {imagePreview ? (
+                <div
+                  style={{ position: 'relative', display: 'inline-block', width: '100%' }}
+                >
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    style={{
+                      width: '100%',
+                      maxHeight: '200px',
+                      objectFit: 'cover',
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    style={{
+                      position: 'absolute',
+                      top: '8px',
+                      right: '8px',
+                      background: 'rgba(0,0,0,0.6)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '28px',
+                      height: '28px',
+                      cursor: 'pointer',
+                      fontSize: '16px',
+                      lineHeight: '28px',
+                      textAlign: 'center',
+                    }}
+                    aria-label="Remove image"
+                  >
+                    ×
+                  </button>
+                </div>
+              ) : (
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click();
+                  }}
+                  style={{
+                    border: `2px dashed ${isDragging ? '#6366f1' : '#d1d5db'}`,
+                    borderRadius: '8px',
+                    padding: '2rem',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    background: isDragging ? '#eef2ff' : '#f9fafb',
+                    transition: 'border-color 0.2s, background 0.2s',
+                  }}
+                >
+                  <svg
+                    width="40"
+                    height="40"
+                    fill="none"
+                    stroke={isDragging ? '#6366f1' : '#9ca3af'}
+                    viewBox="0 0 24 24"
+                    style={{ margin: '0 auto 0.5rem' }}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
+                    />
+                  </svg>
+                  <p
+                    style={{
+                      margin: 0,
+                      color: isDragging ? '#6366f1' : '#6b7280',
+                      fontWeight: 500,
+                    }}
+                  >
+                    {isDragging
+                      ? 'Drop your image here'
+                      : 'Drag & drop or click to upload'}
+                  </p>
+                  <p
+                    style={{
+                      margin: '0.25rem 0 0',
+                      fontSize: '0.75rem',
+                      color: '#9ca3af',
+                    }}
+                  >
+                    PNG, JPG, GIF, WEBP up to 10MB
+                  </p>
+                </div>
+              )}
+
               <input
-                id="image"
-                type="url"
-                name="image"
-                value={formData.image}
-                onChange={handleChange}
-                className="form-input"
-                placeholder="https://example.com/image.jpg"
-                required
+                id="image-upload"
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileInputChange}
+                style={{ display: 'none' }}
+                required={!imagePreview}
               />
             </div>
 
