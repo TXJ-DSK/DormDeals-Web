@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
+// Import local assets for build-safe paths
+import logo from '../resources/logo_flat.png';
 import { createListing, getListings } from './api/listing';
 import AddListingButton from './components/AddListingButton';
 import AddListingForm from './components/AddListingForm';
@@ -215,9 +217,22 @@ function App() {
     <div className="app-container">
       <header className="header">
         <div className="header-content">
-          <h1 className="header-title">DormDeals</h1>
-          <div className="search-bar-wrapper">
-            <SearchBar onSearch={setSearchQuery} />
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem',
+              marginBottom: '1rem',
+            }}
+          >
+            <img
+              src={logo}
+              alt="DormDeals Logo"
+              style={{ height: '40px', width: 'auto', flexShrink: 0 }}
+            />
+            <div className="search-bar-wrapper" style={{ flex: 1, minWidth: '0' }}>
+              <SearchBar onSearch={setSearchQuery} />
+            </div>
           </div>
           <div className="control-row">
             <div className="tag-filters">

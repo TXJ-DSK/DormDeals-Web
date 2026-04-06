@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="./resources/logo.png" alt="DormDeals Logo" width="300" />
+</div>
+
 # DormDeals
 
 DormDeals is a student marketplace web app for buying and selling furniture. The current implementation focuses on the Marketplace experience, where users can browse listings, search for furniture, filter and sort results, inspect listing details, reveal seller contact, and create new posts.
