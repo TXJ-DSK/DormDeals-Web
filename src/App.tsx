@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 
 // Import local assets for build-safe paths
-import logo from '../resources/logo_flat.png';
+//import logo from '../resources/logo_flat.png';
+import logo from '../resources/DormDealsLogo.png';
 import { createListing, getListings } from './api/listing';
 import AddListingButton from './components/AddListingButton';
 import AddListingForm from './components/AddListingForm';
@@ -222,13 +223,18 @@ function App() {
               display: 'flex',
               alignItems: 'center',
               gap: '1rem',
-              marginBottom: '1rem',
+              marginBottom: '2rem',
             }}
           >
             <img
               src={logo}
               alt="DormDeals Logo"
-              style={{ height: '40px', width: 'auto', flexShrink: 0 }}
+              style={{
+                height: '32px',
+                width: 'auto',
+                flexShrink: 0,
+                paddingLeft: '0.5rem',
+              }}
             />
             <div className="search-bar-wrapper" style={{ flex: 1, minWidth: '0' }}>
               <SearchBar onSearch={setSearchQuery} />

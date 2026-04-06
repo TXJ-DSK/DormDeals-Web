@@ -88,7 +88,7 @@ const ListingDetailsModal: React.FC<ListingDetailsModalProps> = ({
               style={{
                 fontSize: '1.5rem',
                 fontWeight: 'bold',
-                color: '#3b82f6',
+                color: 'black',
                 margin: 0,
               }}
             >
@@ -101,7 +101,7 @@ const ListingDetailsModal: React.FC<ListingDetailsModalProps> = ({
             <span
               style={{
                 display: 'inline-block',
-                backgroundColor: '#3b82f6',
+                backgroundColor: 'rgb(49, 49, 49)',
                 color: 'white',
                 padding: '0.5rem 1rem',
                 borderRadius: '9999px',
@@ -153,7 +153,7 @@ const ListingDetailsModal: React.FC<ListingDetailsModalProps> = ({
               style={{
                 width: '100%',
                 padding: '0.75rem 1rem',
-                backgroundColor: '#3b82f6',
+                backgroundColor: '#4E2A84',
                 color: 'white',
                 border: 'none',
                 borderRadius: '0.5rem',

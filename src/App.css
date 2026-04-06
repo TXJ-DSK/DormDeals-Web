@@ -20,6 +20,8 @@ p {
 
 .header {
   font-size: 3rem;
+  background-color: #19760f; /* header background */
+  color: rgb(203, 68, 68);
 }
 
 .body {
@@ -44,7 +46,7 @@ button {
 }
 
 .App-header {
-  background-color: #282c34;
+  background-color: #391340;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -54,6 +56,7 @@ button {
 
   background: var(--bg-primay);
   color: var(--primay);
+  color: black;
 }
 
 .App-link {
