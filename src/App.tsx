@@ -6,6 +6,7 @@ import logo from '../resources/DormDealsLogo.png';
 import { createListing, getListings } from './api/listing';
 import AddListingButton from './components/AddListingButton';
 import AddListingForm from './components/AddListingForm';
+import ConditionRangeFilter from './components/ConditionRangeFilter';
 import ListingCard from './components/ListingCard';
 import ListingDetailsModal from './components/ListingDetailsModal';
 import SearchBar from './components/SearchBar';
@@ -126,7 +127,8 @@ function App() {
   ).sort();
   const [selectedFurnitureTypes, setSelectedFurnitureTypes] = useState<string[]>([]);
   const [maxPrice, setMaxPrice] = useState<number | string>('');
-  const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
+  const [minConditionIndex, setMinConditionIndex] = useState<number>(0); // New (best)
+  const [maxConditionIndex, setMaxConditionIndex] = useState<number>(4); // Poor (worst)
 
   const conditions: Array<'New' | 'Like New' | 'Good' | 'Fair' | 'Poor'> = [
     'New',
@@ -170,8 +172,9 @@ function App() {
 
       const priceFilter = !maxPrice || listing.price <= parseFloat(maxPrice as string);
 
+      const conditionIndex = conditions.indexOf(listing.condition);
       const conditionFilter =
-        selectedConditions.length === 0 || selectedConditions.includes(listing.condition);
+        conditionIndex >= minConditionIndex && conditionIndex <= maxConditionIndex;
 
       return inText && typeFilter && priceFilter && conditionFilter;
     })
@@ -236,7 +239,14 @@ function App() {
                 paddingLeft: '0.5rem',
               }}
             />
-            <div className="search-bar-wrapper" style={{ flex: 1, minWidth: '0' }}>
+            <div
+              className="search-bar-wrapper"
+              style={{
+                flex: 1,
+                minWidth: '0',
+                maxWidth: '400px',
+              }}
+            >
               <SearchBar onSearch={setSearchQuery} />
             </div>
           </div>
@@ -285,31 +295,20 @@ function App() {
                   type="number"
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(e.target.value)}
-                  placeholder="Enter max price"
+                  placeholder="Enter max $"
                   className="sort-select"
                   style={{ width: '100px' }}
                 />
               </div>
-              <div>
-                <label htmlFor="condition" className="sort-label">
-                  Condition:
-                </label>
-                <select
-                  id="condition"
-                  value={selectedConditions.join(',')}
-                  onChange={(e) =>
-                    setSelectedConditions(e.target.value ? e.target.value.split(',') : [])
-                  }
-                  className="sort-select"
-                >
-                  <option value="">All Conditions</option>
-                  {conditions.map((cond) => (
-                    <option key={cond} value={cond}>
-                      {cond}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <ConditionRangeFilter
+                minIndex={minConditionIndex}
+                maxIndex={maxConditionIndex}
+                conditions={conditions}
+                onChange={(minIdx, maxIdx) => {
+                  setMinConditionIndex(minIdx);
+                  setMaxConditionIndex(maxIdx);
+                }}
+              />
               <div>
                 <label htmlFor="sort" className="sort-label">
                   Sort by:
