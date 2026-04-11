@@ -27,16 +27,59 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [priceError, setPriceError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
     const { name, value, type } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === 'number' ? Number(value) : value,
-    }));
+
+    // Special handling for price validation
+    if (name === 'price') {
+      const numValue = Number(value);
+
+      // Check if value is empty (user is clearing the field)
+      if (value === '') {
+        setFormData((prev) => ({
+          ...prev,
+          [name]: 0,
+        }));
+        setPriceError(null);
+        return;
+      }
+
+      // Check if it's a valid number
+      if (isNaN(numValue)) {
+        setPriceError('Price must be a valid number');
+        return;
+      }
+
+      // Check if it's within range (0-9999)
+      if (numValue < 0 || numValue > 9999) {
+        setPriceError('Price must be between $0 and $9999');
+        return;
+      }
+
+      // Check decimal places (at most 2)
+      const decimalPlaces = value.split('.')[1]?.length || 0;
+      if (decimalPlaces > 2) {
+        setPriceError('Price can have at most 2 decimal places');
+        return;
+      }
+
+      // All validations passed
+      setPriceError(null);
+      setFormData((prev) => ({
+        ...prev,
+        [name]: numValue,
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: type === 'number' ? Number(value) : value,
+      }));
+    }
   };
 
   const handleImageFile = useCallback((file: File) => {
@@ -79,8 +122,22 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const handlePriceFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    // Clear the default 0 when user focuses on the price input
+    if (formData.price === 0) {
+      e.currentTarget.value = '';
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate price before submission
+    if (priceError || formData.price < 0 || formData.price > 9999) {
+      setPriceError('Please enter a valid price before submitting');
+      return;
+    }
+
     await onSubmit(formData as Omit<Listing, 'id' | 'userId' | 'createdAt'>);
   };
 
@@ -263,11 +320,30 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
                   name="price"
                   value={formData.price}
                   onChange={handleChange}
+                  onFocus={handlePriceFocus}
                   className="form-input"
                   min="0"
-                  step="0.01"
+                  max="9999"
+                  step="1"
+                  placeholder="0.00"
                   required
                 />
+                {priceError && (
+                  <p
+                    style={{
+                      color: '#dc2626',
+                      fontSize: '0.875rem',
+                      marginTop: '0.25rem',
+                    }}
+                  >
+                    {priceError}
+                  </p>
+                )}
+                <p
+                  style={{ color: '#6b7280', fontSize: '0.75rem', marginTop: '0.25rem' }}
+                >
+                  Format: $0 - $9999 (max 2 decimal places)
+                </p>
               </div>
               <div className="form-group">
                 <label htmlFor="condition" className="form-label">
