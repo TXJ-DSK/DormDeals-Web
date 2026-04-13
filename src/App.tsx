@@ -31,6 +31,8 @@ function App() {
   const [minConditionIndex, setMinConditionIndex] = useState<number>(0); // New (best)
   const [maxConditionIndex, setMaxConditionIndex] = useState<number>(4); // Poor (worst)
 
+  const [listingsLoading, setListingsLoading] = useState(true);
+
   const conditions: Array<'New' | 'Like New' | 'Good' | 'Fair' | 'Poor'> = [
     'New',
     'Like New',
@@ -40,16 +42,22 @@ function App() {
   ];
 
   useEffect(() => {
+    if (!user) return;
+
     const unsubscribe = subscribeToListings((fresh) => {
       const mapped = fresh.map((listing) => ({
         ...listing,
         createdAt: listing.createdAt ? new Date(listing.createdAt) : new Date(),
       }));
       setListings(mapped);
+      setListingsLoading(false);
     });
 
-    return () => unsubscribe();
-  }, []);
+    return () => {
+      unsubscribe();
+      setListingsLoading(true);
+    };
+  }, [user]);
 
   // Show loading state while checking authentication
   if (loading) {
@@ -301,16 +309,21 @@ function App() {
           </div>
         )}
 
-        <div className="grid">
-          {filteredListings.map((listing) => (
-            <ListingCard
-              key={listing.id}
-              listing={listing}
-              onClick={() => setSelectedListing(listing)}
+        {listingsLoading ? (
+          <div className="empty-state">
+            <div
+              style={{
+                width: '2rem',
+                height: '2rem',
+                border: '3px solid #e5e7eb',
+                borderTop: '3px solid #3b82f6',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+                margin: '0 auto',
+              }}
             />
-          ))}
-        </div>
-        {filteredListings.length === 0 && (
+          </div>
+        ) : filteredListings.length === 0 ? (
           <div className="empty-state">
             <svg
               className="empty-icon"
@@ -328,7 +341,22 @@ function App() {
             <h3 className="empty-title">No listings found</h3>
             <p className="empty-message">Try adjusting your search or tag filter.</p>
           </div>
+        ) : (
+          <div className="grid">
+            {filteredListings.map((listing) => (
+              <ListingCard
+                key={listing.id}
+                listing={listing}
+                onClick={() => setSelectedListing(listing)}
+              />
+            ))}
+          </div>
         )}
+        <style>{`
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
       </main>
 
       <AddListingButton onClick={() => setShowAddForm(true)} />
