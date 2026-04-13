@@ -28,52 +28,61 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [priceError, setPriceError] = useState<string | null>(null);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [submitAttempted, setSubmitAttempted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const isFieldInvalid = (field: string) => {
+    if (!submitAttempted && !touched[field]) return false;
+    switch (field) {
+      case 'title':
+        return !formData.title.trim();
+      case 'description':
+        return !formData.description.trim();
+      case 'furnitureType':
+        return !formData.furnitureType.trim();
+      case 'location':
+        return !formData.location.trim();
+      case 'sellerContact':
+        return !formData.sellerContact.trim();
+      default:
+        return false;
+    }
+  };
+
+  const errorBorder = (field: string) =>
+    isFieldInvalid(field) ? '1.5px solid #dc2626' : undefined;
+
+  const handleBlur = (field: string) =>
+    setTouched((prev) => ({ ...prev, [field]: true }));
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
     const { name, value, type } = e.target;
 
-    // Special handling for price validation
     if (name === 'price') {
       const numValue = Number(value);
-
-      // Check if value is empty (user is clearing the field)
       if (value === '') {
-        setFormData((prev) => ({
-          ...prev,
-          [name]: 0,
-        }));
+        setFormData((prev) => ({ ...prev, [name]: 0 }));
         setPriceError(null);
         return;
       }
-
-      // Check if it's a valid number
       if (isNaN(numValue)) {
         setPriceError('Price must be a valid number');
         return;
       }
-
-      // Check if it's within range (0-9999)
       if (numValue < 0 || numValue > 9999) {
         setPriceError('Price must be between $0 and $9999');
         return;
       }
-
-      // Check decimal places (at most 2)
       const decimalPlaces = value.split('.')[1]?.length || 0;
       if (decimalPlaces > 2) {
         setPriceError('Price can have at most 2 decimal places');
         return;
       }
-
-      // All validations passed
       setPriceError(null);
-      setFormData((prev) => ({
-        ...prev,
-        [name]: numValue,
-      }));
+      setFormData((prev) => ({ ...prev, [name]: numValue }));
     } else {
       setFormData((prev) => ({
         ...prev,
@@ -84,7 +93,6 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
 
   const handleImageFile = useCallback((file: File) => {
     if (!file.type.startsWith('image/')) return;
-
     const reader = new FileReader();
     reader.onload = (e) => {
       const dataUrl = e.target?.result as string;
@@ -103,12 +111,10 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
     e.preventDefault();
     setIsDragging(true);
   };
-
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
   };
-
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
@@ -123,18 +129,21 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
   };
 
   const handlePriceFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    // Clear the default 0 when user focuses on the price input
-    if (formData.price === 0) {
-      e.currentTarget.value = '';
-    }
+    if (formData.price === 0) e.currentTarget.value = '';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitAttempted(true);
 
-    // Validate price before submission
-    if (priceError || formData.price < 0 || formData.price > 9999) {
-      setPriceError('Please enter a valid price before submitting');
+    const hasEmptyFields =
+      !formData.title.trim() ||
+      !formData.description.trim() ||
+      !formData.furnitureType.trim() ||
+      !formData.location.trim() ||
+      !formData.sellerContact.trim();
+
+    if (hasEmptyFields || priceError || formData.price < 0 || formData.price > 9999) {
       return;
     }
 
@@ -163,7 +172,7 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
           </button>
         </div>
         <div className="modal-body">
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} noValidate>
             <div className="form-group">
               <label htmlFor="title" className="form-label">
                 Title
@@ -174,10 +183,16 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
                 name="title"
                 value={formData.title}
                 onChange={handleChange}
+                onBlur={() => handleBlur('title')}
                 className="form-input"
                 placeholder="e.g., Office Chair with Lumbar Support"
-                required
+                style={{ border: errorBorder('title') }}
               />
+              {isFieldInvalid('title') && (
+                <p style={{ color: '#dc2626', fontSize: '0.8rem', marginTop: '0.25rem' }}>
+                  Title is required
+                </p>
+              )}
             </div>
 
             <div className="form-group">
@@ -189,18 +204,24 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
+                onBlur={() => handleBlur('description')}
                 rows={3}
                 className="form-textarea"
                 placeholder="Describe the furniture item in detail..."
-                required
+                style={{ border: errorBorder('description') }}
               />
+              {isFieldInvalid('description') && (
+                <p style={{ color: '#dc2626', fontSize: '0.8rem', marginTop: '0.25rem' }}>
+                  Description is required
+                </p>
+              )}
             </div>
 
             <div className="form-group">
               <label htmlFor="image-upload" className="form-label">
-                Image
+                Image{' '}
+                <span style={{ color: '#9ca3af', fontWeight: 400 }}>(optional)</span>
               </label>
-
               {imagePreview ? (
                 <div
                   style={{ position: 'relative', display: 'inline-block', width: '100%' }}
@@ -293,11 +314,10 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
                       color: '#9ca3af',
                     }}
                   >
-                    PNG, JPG, GIF, WEBP up to 10MB
+                    PNG, JPG, GIF, WEBP
                   </p>
                 </div>
               )}
-
               <input
                 id="image-upload"
                 ref={fileInputRef}
@@ -305,7 +325,6 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
                 accept="image/*"
                 onChange={handleFileInputChange}
                 style={{ display: 'none' }}
-                required={!imagePreview}
               />
             </div>
 
@@ -326,7 +345,6 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
                   max="9999"
                   step="1"
                   placeholder="0.00"
-                  required
                 />
                 {priceError && (
                   <p
@@ -342,7 +360,7 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
                 <p
                   style={{ color: '#6b7280', fontSize: '0.75rem', marginTop: '0.25rem' }}
                 >
-                  Format: $0 - $9999 (max 2 decimal places)
+                  $0 – $9999
                 </p>
               </div>
               <div className="form-group">
@@ -376,10 +394,18 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
                   name="furnitureType"
                   value={formData.furnitureType}
                   onChange={handleChange}
+                  onBlur={() => handleBlur('furnitureType')}
                   className="form-input"
                   placeholder="e.g., Chair, Desk, Bookshelf"
-                  required
+                  style={{ border: errorBorder('furnitureType') }}
                 />
+                {isFieldInvalid('furnitureType') && (
+                  <p
+                    style={{ color: '#dc2626', fontSize: '0.8rem', marginTop: '0.25rem' }}
+                  >
+                    Furniture type is required
+                  </p>
+                )}
               </div>
               <div className="form-group">
                 <label htmlFor="location" className="form-label">
@@ -391,10 +417,18 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
                   name="location"
                   value={formData.location}
                   onChange={handleChange}
+                  onBlur={() => handleBlur('location')}
                   className="form-input"
                   placeholder="e.g., Downtown, Campus"
-                  required
+                  style={{ border: errorBorder('location') }}
                 />
+                {isFieldInvalid('location') && (
+                  <p
+                    style={{ color: '#dc2626', fontSize: '0.8rem', marginTop: '0.25rem' }}
+                  >
+                    Location is required
+                  </p>
+                )}
               </div>
             </div>
 
@@ -425,10 +459,16 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
                 name="sellerContact"
                 value={formData.sellerContact}
                 onChange={handleChange}
+                onBlur={() => handleBlur('sellerContact')}
                 className="form-input"
                 placeholder="your.email@u.northwestern.edu"
-                required
+                style={{ border: errorBorder('sellerContact') }}
               />
+              {isFieldInvalid('sellerContact') && (
+                <p style={{ color: '#dc2626', fontSize: '0.8rem', marginTop: '0.25rem' }}>
+                  Contact email is required
+                </p>
+              )}
             </div>
 
             <div className="form-actions">

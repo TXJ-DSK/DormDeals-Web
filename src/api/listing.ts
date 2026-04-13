@@ -1,6 +1,4 @@
-// src/api/listings.ts
-
-import { child, get, push, ref, set } from 'firebase/database';
+import { child, get, onValue, push, ref, remove, set, update } from 'firebase/database';
 
 import { db } from '../firebase/firebase';
 import type { Listing as UIListing } from '../types/Listing';
@@ -14,36 +12,40 @@ type ListingRecord = Omit<Listing, 'id' | 'createdAt'> & {
   createdAt?: number;
 };
 
+const toArray = (data: Record<string, ListingRecord>): Listing[] =>
+  Object.keys(data).map((key) => ({
+    id: key,
+    ...data[key],
+  }));
+
 /**
- * Fetch all listings from Realtime Database
+ * One-time fetch (kept for backwards compat)
  */
 export async function getListings(): Promise<Listing[]> {
-  const dbRef = ref(db);
-
-  const snapshot = await get(child(dbRef, 'listings'));
-
+  const snapshot = await get(child(ref(db), 'listings'));
   if (!snapshot.exists()) return [];
+  return toArray(snapshot.val() as Record<string, ListingRecord>);
+}
 
-  const data = snapshot.val() as Record<string, ListingRecord>;
-
-  // Convert Firebase object → array
-  return Object.keys(data).map((key) => {
-    const listing = data[key];
-    return {
-      id: key,
-      ...listing,
-      createdAt: listing.createdAt,
-    };
+/**
+ * Real-time subscription using websocket to firebase
+ * first with current data, then on every change, support of real time updates
+ */
+export function subscribeToListings(callback: (listings: Listing[]) => void): () => void {
+  const listingsRef = ref(db, 'listings');
+  const unsubscribe = onValue(listingsRef, (snapshot) => {
+    if (!snapshot.exists()) return callback([]);
+    callback(toArray(snapshot.val() as Record<string, ListingRecord>));
   });
+  return unsubscribe;
 }
 
 /**
  * Create a new listing in Realtime Database
  */
 export async function createListing(listing: Listing): Promise<string> {
-  // Create a new child under "listings"
   const listingsRef = ref(db, 'listings');
-  const newRef = push(listingsRef); // generates a new ID
+  const newRef = push(listingsRef);
 
   await set(newRef, {
     title: listing.title,
@@ -60,4 +62,12 @@ export async function createListing(listing: Listing): Promise<string> {
   });
 
   return newRef.key as string;
+}
+
+export async function updateListing(id: string, data: Partial<Listing>): Promise<void> {
+  await update(ref(db, `listings/${id}`), data);
+}
+
+export async function deleteListing(id: string): Promise<void> {
+  await remove(ref(db, `listings/${id}`));
 }

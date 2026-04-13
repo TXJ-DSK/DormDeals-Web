@@ -3,115 +3,19 @@ import React, { useEffect, useState } from 'react';
 // Import local assets for build-safe paths
 //import logo from '../resources/logo_flat.png';
 import logo from '../resources/DormDealsLogo.png';
-import { createListing, getListings } from './api/listing';
+import { createListing, subscribeToListings } from './api/listing';
 import AddListingButton from './components/AddListingButton';
 import AddListingForm from './components/AddListingForm';
 import ConditionRangeFilter from './components/ConditionRangeFilter';
 import ListingCard from './components/ListingCard';
 import ListingDetailsModal from './components/ListingDetailsModal';
+import LoginPage from './components/LoginPage';
 import SearchBar from './components/SearchBar';
+import { useAuth } from './context/AuthContext';
 import { Listing } from './types/Listing';
 
-const mockListings: Listing[] = [
-  {
-    id: '1',
-    title: 'Office Chair with Lumbar Support',
-    description:
-      'Comfortable office chair in great condition. Adjustable height and lumbar support. Perfect for studying.',
-    price: 50,
-    image:
-      'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=300&fit=crop',
-    furnitureType: 'Chair',
-    condition: 'Good',
-    location: 'Downtown',
-    deliveryMethod: 'Pickup',
-    createdAt: new Date(Date.now() - 86400000), // 1 day ago
-    userId: 'user1',
-    sellerContact: 'john@u.northwestern.edu',
-  },
-  {
-    id: '2',
-    title: 'Modern Wooden Study Desk',
-    description:
-      'Sleek wooden desk with drawers for storage. Ideal for dorm rooms. Like new condition.',
-    price: 100,
-    image:
-      'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&h=300&fit=crop',
-    furnitureType: 'Desk',
-    condition: 'Like New',
-    location: 'Campus',
-    deliveryMethod: 'Both',
-    createdAt: new Date(Date.now() - 172800000), // 2 days ago
-    userId: 'user2',
-    sellerContact: 'sarah@u.northwestern.edu',
-  },
-  {
-    id: '3',
-    title: 'Adjustable Bookshelf',
-    description:
-      'Wooden bookshelf with adjustable shelves. Good for organizing textbooks and personal items.',
-    price: 25,
-    image:
-      'https://images.unsplash.com/photo-1549497538-303791108f95?w=400&h=300&fit=crop',
-    furnitureType: 'Bookshelf',
-    condition: 'Fair',
-    location: 'Westside',
-    deliveryMethod: 'Pickup',
-    createdAt: new Date(Date.now() - 259200000), // 3 days ago
-    userId: 'user3',
-    sellerContact: 'mike@u.northwestern.edu',
-  },
-  {
-    id: '4',
-    title: 'Ergonomic Gaming Chair with RGB',
-    description:
-      'High-back gaming chair with RGB lighting and lumbar support. Barely used, like new.',
-    price: 75,
-    image:
-      'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=300&fit=crop',
-    furnitureType: 'Chair',
-    condition: 'New',
-    location: 'Eastside',
-    deliveryMethod: 'Delivery',
-    createdAt: new Date(Date.now() - 345600000), // 4 days ago
-    userId: 'user4',
-    sellerContact: 'alex@u.northwestern.edu',
-  },
-  {
-    id: '5',
-    title: 'Compact Writing Desk',
-    description:
-      'Perfect small desk for dorm rooms. Saves space while providing a work surface.',
-    price: 40,
-    image:
-      'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&h=300&fit=crop',
-    furnitureType: 'Desk',
-    condition: 'Good',
-    location: 'North Campus',
-    deliveryMethod: 'Both',
-    createdAt: new Date(Date.now() - 432000000), // 5 days ago
-    userId: 'user5',
-    sellerContact: 'emma@u.northwestern.edu',
-  },
-  {
-    id: '6',
-    title: 'Storage Bookshelf',
-    description:
-      'Used bookshelf in fair condition. Still very functional for storing items.',
-    price: 15,
-    image:
-      'https://images.unsplash.com/photo-1549497538-303791108f95?w=400&h=300&fit=crop',
-    furnitureType: 'Bookshelf',
-    condition: 'Poor',
-    location: 'Southside',
-    deliveryMethod: 'Pickup',
-    createdAt: new Date(Date.now() - 518400000), // 6 days ago
-    userId: 'user6',
-    sellerContact: 'david@u.northwestern.edu',
-  },
-];
-
 function App() {
+  const { user, loading, logout } = useAuth();
   const [listings, setListings] = useState<Listing[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -122,9 +26,6 @@ function App() {
     'newest' | 'oldest' | 'priceAsc' | 'priceDesc'
   >('newest');
 
-  const furnitureTypeSet = Array.from(
-    new Set(listings.map((listing) => listing.furnitureType)),
-  ).sort();
   const [selectedFurnitureTypes, setSelectedFurnitureTypes] = useState<string[]>([]);
   const [maxPrice, setMaxPrice] = useState<number | string>('');
   const [minConditionIndex, setMinConditionIndex] = useState<number>(0); // New (best)
@@ -138,24 +39,55 @@ function App() {
     'Poor',
   ];
 
-  const loadListings = async () => {
-    try {
-      const dbListings = await getListings();
-      const mappedListings: Listing[] = dbListings.map((listing) => ({
+  useEffect(() => {
+    const unsubscribe = subscribeToListings((fresh) => {
+      const mapped = fresh.map((listing) => ({
         ...listing,
-        id: listing.id ?? Date.now().toString(),
         createdAt: listing.createdAt ? new Date(listing.createdAt) : new Date(),
       }));
-      setListings(mappedListings);
-    } catch (error) {
-      console.error('Failed to load listings from Realtime Database:', error);
-      setListings(mockListings);
-    }
-  };
+      setListings(mapped);
+    });
 
-  useEffect(() => {
-    void loadListings();
+    return () => unsubscribe();
   }, []);
+
+  // Show loading state while checking authentication
+  if (loading) {
+    return (
+      <div className="app-container">
+        <div className="empty-state">
+          <div style={{ marginBottom: '1rem' }}>
+            <div
+              style={{
+                width: '3rem',
+                height: '3rem',
+                border: '4px solid #e5e7eb',
+                borderTop: '4px solid #3b82f6',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+                margin: '0 auto',
+              }}
+            />
+          </div>
+          <h3 className="empty-title">Loading...</h3>
+        </div>
+        <style>{`
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  // Show login page if not authenticated
+  if (!user) {
+    return <LoginPage />;
+  }
+
+  const furnitureTypeSet = Array.from(
+    new Set(listings.map((listing) => listing.furnitureType)),
+  ).sort();
 
   const filteredListings = listings
     .filter((listing) => {
@@ -193,7 +125,7 @@ function App() {
     const listing: Listing = {
       ...newListing,
       id: Date.now().toString(),
-      userId: 'currentUser',
+      userId: user.uid,
       createdAt: new Date(),
     };
 
@@ -204,9 +136,7 @@ function App() {
         ...listing,
         createdAt: listing.createdAt.getTime(),
       });
-
-      await loadListings();
-      setShowAddForm(false);
+      setShowAddForm(false); // subscription handles the UI update automatically
     } catch (error) {
       console.error('Failed to create listing:', error);
       setSubmitError(
@@ -248,6 +178,35 @@ function App() {
               }}
             >
               <SearchBar onSearch={setSearchQuery} />
+            </div>
+            {/* user info */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                marginLeft: 'auto',
+                paddingRight: '0.5rem',
+                flexShrink: 0,
+              }}
+            >
+              <span style={{ fontSize: '14px', color: '#fff', fontWeight: 500 }}>
+                {user.displayName ?? user.email?.split('@')[0]}
+              </span>
+              <button
+                onClick={logout}
+                style={{
+                  padding: '0.25rem 0.75rem',
+                  fontSize: '13px',
+                  color: '#fff',
+                  background: 'transparent',
+                  border: '1px solid rgba(255,255,255,0.5)',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                }}
+              >
+                Sign out
+              </button>
             </div>
           </div>
           <div className="control-row">
