@@ -127,6 +127,15 @@ function App() {
       return 0;
     });
 
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setSelectedFurnitureTypes([]);
+    setMaxPrice('');
+    setMinConditionIndex(0);
+    setMaxConditionIndex(4);
+    setSortMethod('newest');
+  };
+
   const handleAddListing = async (
     newListing: Omit<Listing, 'id' | 'userId' | 'createdAt'>,
   ) => {
@@ -167,16 +176,30 @@ function App() {
               marginBottom: '2rem',
             }}
           >
-            <img
-              src={logo}
-              alt="DormDeals Logo"
+            <button
+              onClick={handleResetFilters}
               style={{
-                height: '32px',
-                width: 'auto',
-                flexShrink: 0,
-                paddingLeft: '0.5rem',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 0,
+                display: 'flex',
+                alignItems: 'center',
               }}
-            />
+              title="Click to reset filters and search"
+              aria-label="Reset filters and search"
+            >
+              <img
+                src={logo}
+                alt="DormDeals Logo"
+                style={{
+                  height: '32px',
+                  width: 'auto',
+                  flexShrink: 0,
+                  paddingLeft: '0.5rem',
+                }}
+              />
+            </button>
             <div
               className="search-bar-wrapper"
               style={{
@@ -260,6 +283,7 @@ function App() {
                 <input
                   id="maxPrice"
                   type="number"
+                  min="0"
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(e.target.value)}
                   placeholder="Enter max $"
@@ -290,8 +314,8 @@ function App() {
                   }
                   className="sort-select"
                 >
-                  <option value="newest">Newest</option>
-                  <option value="oldest">Oldest</option>
+                  <option value="newest">Newest Post</option>
+                  <option value="oldest">Oldest Post</option>
                   <option value="priceAsc">Price: Low to High</option>
                   <option value="priceDesc">Price: High to Low</option>
                 </select>

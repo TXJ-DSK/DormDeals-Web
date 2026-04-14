@@ -407,7 +407,7 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
                   onChange={handleChange}
                   onBlur={() => handleBlur('furnitureType')}
                   className="form-input"
-                  placeholder="e.g., Chair, Desk, Bookshelf"
+                  placeholder="Chair, Desk, Bookshelf..."
                   style={{ border: errorBorder('furnitureType') }}
                 />
                 {isFieldInvalid('furnitureType') && (
@@ -431,7 +431,7 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
                   onChange={handleChange}
                   onBlur={() => handleBlur('location')}
                   className="form-input"
-                  placeholder="Address i.e. 633 Clark St, Evanston, IL"
+                  placeholder="e.g., 633 Clark St"
                   style={{ border: errorBorder('location') }}
                 />
                 {isFieldInvalid('location') && (
