@@ -32,6 +32,7 @@ function App() {
   const [maxConditionIndex, setMaxConditionIndex] = useState<number>(4); // Poor (worst)
 
   const [listingsLoading, setListingsLoading] = useState(true);
+  const [currentView, setCurrentView] = useState<'all' | 'my-furniture'>('all');
 
   const conditions: Array<'New' | 'Like New' | 'Good' | 'Fair' | 'Poor'> = [
     'New',
@@ -94,11 +95,21 @@ function App() {
   }
 
   const furnitureTypeSet = Array.from(
-    new Set(listings.map((listing) => listing.furnitureType)),
+    new Set(
+      (currentView === 'my-furniture'
+        ? listings.filter((l) => l.userId === user?.uid)
+        : listings
+      ).map((listing) => listing.furnitureType),
+    ),
   ).sort();
 
   const filteredListings = listings
     .filter((listing) => {
+      // Filter by user if viewing "my furniture"
+      if (currentView === 'my-furniture' && listing.userId !== user?.uid) {
+        return false;
+      }
+
       const query = searchQuery.toLowerCase();
       const inText =
         listing.title.toLowerCase().includes(query) ||
@@ -240,88 +251,134 @@ function App() {
               </button>
             </div>
           </div>
-          <div className="control-row">
-            <div className="tag-filters">
-              <button
-                className={`btn ${selectedFurnitureTypes.length === 0 ? 'active' : ''}`}
-                onClick={() => setSelectedFurnitureTypes([])}
-              >
-                All Types
-              </button>
-              {furnitureTypeSet.map((type) => {
-                const isChecked = selectedFurnitureTypes.includes(type);
-                return (
-                  <button
-                    key={type}
-                    className={`btn ${isChecked ? 'active' : ''}`}
-                    onClick={() => {
-                      setSelectedFurnitureTypes((prev) =>
-                        prev.includes(type)
-                          ? prev.filter((t) => t !== type)
-                          : [...prev, type],
-                      );
-                    }}
-                  >
-                    {type}
-                    {isChecked && ' ✓'}
-                  </button>
-                );
-              })}
-            </div>
-            <div
+          <div
+            style={{
+              display: 'flex',
+              gap: '1rem',
+              marginBottom: '1rem',
+              borderBottom: '2px solid rgba(255,255,255,0.1)',
+            }}
+          >
+            <button
+              onClick={() => setCurrentView('all')}
               style={{
-                display: 'flex',
-                gap: '1rem',
-                alignItems: 'center',
-                flexWrap: 'wrap',
+                padding: '0.5rem 1rem',
+                fontSize: '14px',
+                color: currentView === 'all' ? '#fff' : 'rgba(255,255,255,0.7)',
+                background: 'transparent',
+                border: 'none',
+                borderBottom:
+                  currentView === 'all' ? '2px solid #3b82f6' : '2px solid transparent',
+                cursor: 'pointer',
+                fontWeight: currentView === 'all' ? '600' : '400',
+                transition: 'all 0.2s',
               }}
             >
-              <div>
-                <label htmlFor="maxPrice" className="sort-label">
-                  Max Price:
-                </label>
-                <input
-                  id="maxPrice"
-                  type="number"
-                  min="0"
-                  value={maxPrice}
-                  onChange={(e) => setMaxPrice(e.target.value)}
-                  placeholder="Enter max $"
-                  className="sort-select"
-                  style={{ width: '100px' }}
-                />
-              </div>
-              <ConditionRangeFilter
-                minIndex={minConditionIndex}
-                maxIndex={maxConditionIndex}
-                conditions={conditions}
-                onChange={(minIdx, maxIdx) => {
-                  setMinConditionIndex(minIdx);
-                  setMaxConditionIndex(maxIdx);
-                }}
-              />
-              <div>
-                <label htmlFor="sort" className="sort-label">
-                  Sort by:
-                </label>
-                <select
-                  id="sort"
-                  value={sortMethod}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                    setSortMethod(
-                      e.target.value as 'newest' | 'oldest' | 'priceAsc' | 'priceDesc',
-                    )
-                  }
-                  className="sort-select"
+              All Listings
+            </button>
+            <button
+              onClick={() => setCurrentView('my-furniture')}
+              style={{
+                padding: '0.5rem 1rem',
+                fontSize: '14px',
+                color: currentView === 'my-furniture' ? '#fff' : 'rgba(255,255,255,0.7)',
+                background: 'transparent',
+                border: 'none',
+                borderBottom:
+                  currentView === 'my-furniture'
+                    ? '2px solid #3b82f6'
+                    : '2px solid transparent',
+                cursor: 'pointer',
+                fontWeight: currentView === 'my-furniture' ? '600' : '400',
+                transition: 'all 0.2s',
+              }}
+            >
+              My Furniture
+            </button>
+          </div>
+          {currentView === 'all' && (
+            <div className="control-row">
+              <div className="tag-filters">
+                <button
+                  className={`btn ${selectedFurnitureTypes.length === 0 ? 'active' : ''}`}
+                  onClick={() => setSelectedFurnitureTypes([])}
                 >
-                  <option value="newest">Newest Post</option>
-                  <option value="oldest">Oldest Post</option>
-                  <option value="priceAsc">Price: Low to High</option>
-                  <option value="priceDesc">Price: High to Low</option>
-                </select>
+                  All Types
+                </button>
+                {furnitureTypeSet.map((type) => {
+                  const isChecked = selectedFurnitureTypes.includes(type);
+                  return (
+                    <button
+                      key={type}
+                      className={`btn ${isChecked ? 'active' : ''}`}
+                      onClick={() => {
+                        setSelectedFurnitureTypes((prev) =>
+                          prev.includes(type)
+                            ? prev.filter((t) => t !== type)
+                            : [...prev, type],
+                        );
+                      }}
+                    >
+                      {type}
+                      {isChecked && ' ✓'}
+                    </button>
+                  );
+                })}
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '1rem',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div>
+                  <label htmlFor="maxPrice" className="sort-label">
+                    Max Price:
+                  </label>
+                  <input
+                    id="maxPrice"
+                    type="number"
+                    value={maxPrice}
+                    onChange={(e) => setMaxPrice(e.target.value)}
+                    placeholder="Enter max $"
+                    className="sort-select"
+                    style={{ width: '100px' }}
+                  />
+                </div>
+                <ConditionRangeFilter
+                  minIndex={minConditionIndex}
+                  maxIndex={maxConditionIndex}
+                  conditions={conditions}
+                  onChange={(minIdx, maxIdx) => {
+                    setMinConditionIndex(minIdx);
+                    setMaxConditionIndex(maxIdx);
+                  }}
+                />
+                <div>
+                  <label htmlFor="sort" className="sort-label">
+                    Sort by:
+                  </label>
+                  <select
+                    id="sort"
+                    value={sortMethod}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                      setSortMethod(
+                        e.target.value as 'newest' | 'oldest' | 'priceAsc' | 'priceDesc',
+                      )
+                    }
+                    className="sort-select"
+                  >
+                    <option value="newest">Newest</option>
+                    <option value="oldest">Oldest</option>
+                    <option value="priceAsc">Price: Low to High</option>
+                    <option value="priceDesc">Price: High to Low</option>
+                  </select>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </header>
 
@@ -362,8 +419,14 @@ function App() {
                 d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2M4 13h2m8-5v2m0 0v2m0-2h2m-2 0h-2"
               />
             </svg>
-            <h3 className="empty-title">No listings found</h3>
-            <p className="empty-message">Try adjusting your search or tag filter.</p>
+            <h3 className="empty-title">
+              {currentView === 'my-furniture' ? 'No listings yet' : 'No listings found'}
+            </h3>
+            <p className="empty-message">
+              {currentView === 'my-furniture'
+                ? 'Click the + button to create your first listing!'
+                : 'Try adjusting your search or tag filter.'}
+            </p>
           </div>
         ) : (
           <div className="grid">
