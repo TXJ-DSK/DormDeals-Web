@@ -20,6 +20,7 @@ const ListingDetailsModal: React.FC<ListingDetailsModalProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
   const [editData, setEditData] = useState({
     title: listing.title,
     description: listing.description,
@@ -28,6 +29,7 @@ const ListingDetailsModal: React.FC<ListingDetailsModalProps> = ({
     location: listing.location,
     deliveryMethod: listing.deliveryMethod,
     furnitureType: listing.furnitureType,
+    image: listing.image,
   });
 
   const handleOverlayClick = (e: React.MouseEvent) => {
@@ -44,11 +46,34 @@ const ListingDetailsModal: React.FC<ListingDetailsModalProps> = ({
     }));
   };
 
+  const handleImageFile = (file: File) => {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      setEditImagePreview(dataUrl);
+      setEditData((prev) => ({ ...prev, image: dataUrl }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleImageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleImageFile(file);
+  };
+
+  const handleRemoveImage = () => {
+    setEditImagePreview(null);
+    setEditData((prev) => ({ ...prev, image: '' }));
+  };
+
   const handleSave = async () => {
     if (!listing.id) return;
     try {
       setIsSaving(true);
       await updateListing(listing.id, editData);
+      // Update displayed listing to show new values immediately
+      Object.assign(listing, editData);
       setIsEditing(false);
     } catch (err) {
       console.error('Failed to update listing:', err);
@@ -149,6 +174,116 @@ const ListingDetailsModal: React.FC<ListingDetailsModalProps> = ({
 
           {isEditing ? (
             <>
+              <div className="form-group">
+                <label htmlFor="edit-image" className="form-label">
+                  Image
+                </label>
+                <div
+                  style={{
+                    width: '100%',
+                    height: '200px',
+                    border: '2px dashed #d1d5db',
+                    borderRadius: '6px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    backgroundColor: '#f9fafb',
+                    marginBottom: '0.75rem',
+                  }}
+                >
+                  {editImagePreview || editData.image ? (
+                    <div
+                      style={{
+                        position: 'relative',
+                        width: '100%',
+                        height: '100%',
+                      }}
+                    >
+                      <img
+                        src={editImagePreview || editData.image}
+                        alt="Preview"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          borderRadius: '4px',
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemoveImage}
+                        style={{
+                          position: 'absolute',
+                          top: '0.5rem',
+                          right: '0.5rem',
+                          background: 'rgba(0,0,0,0.6)',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '50%',
+                          width: '2rem',
+                          height: '2rem',
+                          cursor: 'pointer',
+                          fontSize: '1.2rem',
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        textAlign: 'center',
+                        color: '#9ca3af',
+                      }}
+                    >
+                      <svg
+                        width="40"
+                        height="40"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        style={{ margin: '0 auto 0.5rem' }}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={1.5}
+                          d="M12 4v16m8-8H4"
+                        />
+                      </svg>
+                      <p style={{ margin: 0, fontSize: '0.9rem' }}>
+                        Click to upload image
+                      </p>
+                    </div>
+                  )}
+                  <input
+                    id="edit-image"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageInputChange}
+                    style={{
+                      display: 'none',
+                    }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('edit-image')?.click()}
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    background: '#fff',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                  }}
+                >
+                  Choose Image
+                </button>
+              </div>
               <div className="form-group">
                 <label htmlFor="edit-title" className="form-label">
                   Title
