@@ -85,9 +85,16 @@ function App() {
     return <LoginPage />;
   }
 
-  const furnitureTypeSet = Array.from(
-    new Set(listings.map((listing) => listing.furnitureType)),
-  ).sort();
+  const furnitureTypeSet = [
+    'Bed',
+    'Chair',
+    'Couch',
+    'Desk',
+    'Lamp',
+    'Sofa',
+    'Table',
+    'Other',
+  ];
 
   const filteredListings = listings
     .filter((listing) => {
