@@ -64,6 +64,7 @@ Click on more filters → popup opens in the center of the page with filter type
 Click on a listing → listing expands in a popup with all available information
 See expanded information (description, and contact info)
 Click message seller → button reveals seller contact information
+Click on logo → resets all filters, search query, and sort settings to return to default marketplace page
 
 Listing an item:
 Click list an item

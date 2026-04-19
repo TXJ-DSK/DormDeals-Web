@@ -8,6 +8,12 @@ interface AddListingFormProps {
   isSubmitting: boolean;
 }
 
+const RequiredStar = () => (
+  <span style={{ color: '#dc2626', marginLeft: '2px' }} aria-hidden="true">
+    *
+  </span>
+);
+
 const AddListingForm: React.FC<AddListingFormProps> = ({
   onSubmit,
   onCancel,
@@ -176,6 +182,7 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
             <div className="form-group">
               <label htmlFor="title" className="form-label">
                 Title
+                <RequiredStar />
               </label>
               <input
                 id="title"
@@ -198,6 +205,7 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
             <div className="form-group">
               <label htmlFor="description" className="form-label">
                 Description
+                <RequiredStar />
               </label>
               <textarea
                 id="description"
@@ -207,7 +215,7 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
                 onBlur={() => handleBlur('description')}
                 rows={3}
                 className="form-textarea"
-                placeholder="Describe the furniture item in detail..."
+                placeholder="Dimensions, color, material, age, etc."
                 style={{ border: errorBorder('description') }}
               />
               {isFieldInvalid('description') && (
@@ -332,6 +340,7 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
               <div className="form-group">
                 <label htmlFor="price" className="form-label">
                   Price
+                  <RequiredStar />
                 </label>
                 <input
                   id="price"
@@ -366,6 +375,7 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
               <div className="form-group">
                 <label htmlFor="condition" className="form-label">
                   Condition
+                  <RequiredStar />
                 </label>
                 <select
                   id="condition"
@@ -387,6 +397,7 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
               <div className="form-group">
                 <label htmlFor="furnitureType" className="form-label">
                   Furniture Type
+                  <RequiredStar />
                 </label>
                 <input
                   id="furnitureType"
@@ -396,7 +407,7 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
                   onChange={handleChange}
                   onBlur={() => handleBlur('furnitureType')}
                   className="form-input"
-                  placeholder="e.g., Chair, Desk, Bookshelf"
+                  placeholder="Chair, Desk, Bookshelf..."
                   style={{ border: errorBorder('furnitureType') }}
                 />
                 {isFieldInvalid('furnitureType') && (
@@ -409,7 +420,8 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
               </div>
               <div className="form-group">
                 <label htmlFor="location" className="form-label">
-                  Location
+                  Address
+                  <RequiredStar />
                 </label>
                 <input
                   id="location"
@@ -419,7 +431,7 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
                   onChange={handleChange}
                   onBlur={() => handleBlur('location')}
                   className="form-input"
-                  placeholder="e.g., Downtown, Campus"
+                  placeholder="e.g., 633 Clark St"
                   style={{ border: errorBorder('location') }}
                 />
                 {isFieldInvalid('location') && (
@@ -435,6 +447,7 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
             <div className="form-group">
               <label htmlFor="deliveryMethod" className="form-label">
                 Delivery Method
+                <RequiredStar />
               </label>
               <select
                 id="deliveryMethod"
@@ -452,6 +465,7 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
             <div className="form-group">
               <label htmlFor="sellerContact" className="form-label">
                 Your Contact Email
+                <RequiredStar />
               </label>
               <input
                 id="sellerContact"

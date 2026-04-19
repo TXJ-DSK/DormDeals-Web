@@ -9,6 +9,7 @@ DormDeals is a student marketplace web app for buying and selling furniture. The
 ## Current Marketplace Features
 
 - Browse all posted furniture listings in a card grid layout.
+- Click the **DormDeals logo** to reset all filters, search queries, and sort settings back to default.
 - Search listings by keyword (title, description, location, and furniture type).
 - Filter listings by:
   - Furniture type
