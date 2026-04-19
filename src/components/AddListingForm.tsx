@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Listing } from '../types/Listing';
 
@@ -31,12 +31,25 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
     sellerContact: '',
   });
 
+  const [showCamera, setShowCamera] = useState(false);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [priceError, setPriceError] = useState<string | null>(null);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    return () => {
+      // Cleanup camera stream on unmount
+      if (cameraStream) {
+        cameraStream.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, [cameraStream]);
 
   const isFieldInvalid = (field: string) => {
     if (!submitAttempted && !touched[field]) return false;
@@ -107,6 +120,87 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
     };
     reader.readAsDataURL(file);
   }, []);
+
+  // 1. Modified startCamera: Just get the stream and open the modal
+  const startCamera = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+      });
+      setCameraStream(stream);
+      setShowCamera(true);
+    } catch (error) {
+      console.error('Camera error:', error);
+      alert('Camera access denied. Please check your browser settings.');
+    }
+  }, []);
+
+  // 2. Add this EFFECT: This attaches the stream once the <video> element exists
+  useEffect(() => {
+    if (showCamera && videoRef.current && cameraStream) {
+      const video = videoRef.current;
+      video.srcObject = cameraStream;
+
+      const handlePlay = () => {
+        video.play().catch((e) => console.error('Video play failed:', e));
+      };
+
+      video.addEventListener('loadedmetadata', handlePlay);
+      return () => video.removeEventListener('loadedmetadata', handlePlay);
+    }
+  }, [showCamera, cameraStream]);
+
+  const stopCamera = useCallback(() => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach((track) => track.stop());
+      setCameraStream(null);
+    }
+    setShowCamera(false);
+  }, [cameraStream]);
+
+  const capturePhoto = useCallback(() => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+    if (!context) return;
+
+    // Set canvas to match the VIEWPORT size the user sees
+    const displayWidth = video.clientWidth;
+    const displayHeight = video.clientHeight;
+    canvas.width = displayWidth;
+    canvas.height = displayHeight;
+
+    // Match the CSS 'object-fit: cover' cropping
+    const videoRatio = video.videoWidth / video.videoHeight;
+    const displayRatio = displayWidth / displayHeight;
+
+    let sx = 0,
+      sy = 0,
+      sw = video.videoWidth,
+      sh = video.videoHeight;
+
+    if (videoRatio > displayRatio) {
+      sw = video.videoHeight * displayRatio;
+      sx = (video.videoWidth - sw) / 2;
+    } else {
+      sh = video.videoWidth / displayRatio;
+      sy = (video.videoHeight - sh) / 2;
+    }
+
+    // Draw only the visible portion onto the canvas
+    context.drawImage(video, sx, sy, sw, sh, 0, 0, displayWidth, displayHeight);
+
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+    setImagePreview(dataUrl);
+    setFormData((prev) => ({ ...prev, image: dataUrl }));
+    stopCamera();
+  }, [stopCamera]);
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -326,6 +420,14 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
                   </p>
                 </div>
               )}
+              <button
+                type="button"
+                onClick={startCamera}
+                className="btn btn-secondary"
+                style={{ marginTop: '0.5rem', width: '100%' }}
+              >
+                Take Photo
+              </button>
               <input
                 id="image-upload"
                 ref={fileInputRef}
@@ -501,6 +603,80 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
           </form>
         </div>
       </div>
+
+      {showCamera && (
+        <div
+          className="modal-overlay"
+          style={{ zIndex: 1001 }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              stopCamera();
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              stopCamera();
+            }
+          }}
+        >
+          <div
+            className="modal"
+            style={{ maxWidth: '500px' }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="camera-modal-title"
+            tabIndex={-1}
+          >
+            <div className="modal-header">
+              <h2 id="camera-modal-title" className="modal-title">
+                Take Picture
+              </h2>
+              <button
+                type="button"
+                onClick={stopCamera}
+                className="modal-close"
+                aria-label="Close camera modal"
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body" style={{ textAlign: 'center' }}>
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                style={{
+                  width: '100%',
+                  height: '350px',
+                  objectFit: 'cover',
+                  borderRadius: '8px',
+                  background: '#000',
+                }}
+              />
+              <canvas ref={canvasRef} style={{ display: 'none' }} />
+              <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={capturePhoto}
+                  className="btn btn-primary"
+                  style={{ flex: 1 }}
+                >
+                  Capture Photo
+                </button>
+                <button
+                  type="button"
+                  onClick={stopCamera}
+                  className="btn btn-secondary"
+                  style={{ flex: 1 }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
