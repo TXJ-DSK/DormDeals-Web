@@ -605,11 +605,38 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
       </div>
 
       {showCamera && (
-        <div className="modal-overlay" style={{ zIndex: 1001 }}>
-          <div className="modal" style={{ maxWidth: '500px' }}>
+        <div
+          className="modal-overlay"
+          style={{ zIndex: 1001 }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              stopCamera();
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              stopCamera();
+            }
+          }}
+        >
+          <div
+            className="modal"
+            style={{ maxWidth: '500px' }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="camera-modal-title"
+            tabIndex={-1}
+          >
             <div className="modal-header">
-              <h2 className="modal-title">Take Picture</h2>
-              <button onClick={stopCamera} className="modal-close">
+              <h2 id="camera-modal-title" className="modal-title">
+                Take Picture
+              </h2>
+              <button
+                type="button"
+                onClick={stopCamera}
+                className="modal-close"
+                aria-label="Close camera modal"
+              >
                 ×
               </button>
             </div>
