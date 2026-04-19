@@ -132,51 +132,27 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
         },
       });
       setCameraStream(stream);
-      setShowCamera(true); // This triggers the modal to render the <video> tag
+      setShowCamera(true);
     } catch (error) {
       console.error('Camera error:', error);
-      alert('Camera access denied or unavailable');
+      alert('Camera access denied. Please check your browser settings.');
     }
   }, []);
 
   // 2. Add this EFFECT: This attaches the stream once the <video> element exists
   useEffect(() => {
     if (showCamera && videoRef.current && cameraStream) {
-      videoRef.current.srcObject = cameraStream;
+      const video = videoRef.current;
+      video.srcObject = cameraStream;
 
-      // Explicitly play the video
-      videoRef.current.onloadedmetadata = () => {
-        videoRef.current?.play().catch((e) => console.error('Play failed:', e));
+      const handlePlay = () => {
+        video.play().catch((e) => console.error('Video play failed:', e));
       };
+
+      video.addEventListener('loadedmetadata', handlePlay);
+      return () => video.removeEventListener('loadedmetadata', handlePlay);
     }
   }, [showCamera, cameraStream]);
-
-  const capturePhoto = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current) return;
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
-
-    if (!context) return;
-
-    // Set canvas size to video size
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    // Draw the video frame to canvas
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    // Convert to data URL
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-
-    // Stop camera
-    stopCamera();
-
-    // Set the image
-    setImagePreview(dataUrl);
-    setFormData((prev) => ({ ...prev, image: dataUrl }));
-  }, []);
 
   const stopCamera = useCallback(() => {
     if (cameraStream) {
@@ -185,6 +161,46 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
     }
     setShowCamera(false);
   }, [cameraStream]);
+
+  const capturePhoto = useCallback(() => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+    if (!context) return;
+
+    // Set canvas to match the VIEWPORT size the user sees
+    const displayWidth = video.clientWidth;
+    const displayHeight = video.clientHeight;
+    canvas.width = displayWidth;
+    canvas.height = displayHeight;
+
+    // Match the CSS 'object-fit: cover' cropping
+    const videoRatio = video.videoWidth / video.videoHeight;
+    const displayRatio = displayWidth / displayHeight;
+
+    let sx = 0,
+      sy = 0,
+      sw = video.videoWidth,
+      sh = video.videoHeight;
+
+    if (videoRatio > displayRatio) {
+      sw = video.videoHeight * displayRatio;
+      sx = (video.videoWidth - sw) / 2;
+    } else {
+      sh = video.videoWidth / displayRatio;
+      sy = (video.videoHeight - sh) / 2;
+    }
+
+    // Draw only the visible portion onto the canvas
+    context.drawImage(video, sx, sy, sw, sh, 0, 0, displayWidth, displayHeight);
+
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+    setImagePreview(dataUrl);
+    setFormData((prev) => ({ ...prev, image: dataUrl }));
+    stopCamera();
+  }, [stopCamera]);
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -592,21 +608,9 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
         <div className="modal-overlay" style={{ zIndex: 1001 }}>
           <div className="modal" style={{ maxWidth: '500px' }}>
             <div className="modal-header">
-              <h2 className="modal-title">Take Photo</h2>
+              <h2 className="modal-title">Take Picture</h2>
               <button onClick={stopCamera} className="modal-close">
-                <svg
-                  style={{ width: '1.5rem', height: '1.5rem' }}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                ×
               </button>
             </div>
             <div className="modal-body" style={{ textAlign: 'center' }}>
@@ -615,28 +619,30 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
                 autoPlay
                 playsInline
                 muted
-                // Adding 'object-fit: cover' and explicit height helps centering
                 style={{
                   width: '100%',
                   height: '350px',
-                  objectFit: 'cover', // Ensures the feed fills the box without black bars
+                  objectFit: 'cover',
                   borderRadius: '8px',
-                  background: '#1a1a1a', // Darker background looks better for camera
-                  transform: 'scaleX(1)', // Use scaleX(-1) ONLY if using a selfie camera
+                  background: '#000',
                 }}
               />
-
               <canvas ref={canvasRef} style={{ display: 'none' }} />
-              <div style={{ marginTop: '1rem' }}>
+              <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
                 <button
                   type="button"
                   onClick={capturePhoto}
                   className="btn btn-primary"
-                  style={{ marginRight: '0.5rem' }}
+                  style={{ flex: 1 }}
                 >
                   Capture Photo
                 </button>
-                <button type="button" onClick={stopCamera} className="btn btn-secondary">
+                <button
+                  type="button"
+                  onClick={stopCamera}
+                  className="btn btn-secondary"
+                  style={{ flex: 1 }}
+                >
                   Cancel
                 </button>
               </div>
@@ -644,6 +650,7 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
           </div>
         </div>
       )}
+
       <style>{`
         @keyframes spin {
           to { transform: rotate(360deg); }
