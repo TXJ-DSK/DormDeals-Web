@@ -411,7 +411,27 @@ function App() {
         )}
 
         {currentView === 'map' ? (
-          <div style={{ height: 'calc(100vh - 200px)', minHeight: '500px' }}>
+          <div
+            role="region"
+            aria-label="Map View"
+            data-testid="map-view-container"
+            style={{ height: 'calc(100vh - 200px)', minHeight: '500px' }}
+          >
+            <span
+              style={{
+                position: 'absolute',
+                width: '1px',
+                height: '1px',
+                padding: 0,
+                margin: '-1px',
+                overflow: 'hidden',
+                clip: 'rect(0, 0, 0, 0)',
+                whiteSpace: 'nowrap',
+                border: 0,
+              }}
+            >
+              Map View active
+            </span>
             <MapView listings={listings} onSelectListing={setSelectedListing} />
           </div>
         ) : listingsLoading ? (
