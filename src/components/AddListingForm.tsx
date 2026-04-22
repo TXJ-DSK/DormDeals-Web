@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 
 import { Listing } from '../types/Listing';
 
@@ -8,11 +8,16 @@ interface AddListingFormProps {
   isSubmitting: boolean;
 }
 
-const RequiredStar = () => (
-  <span style={{ color: '#dc2626', marginLeft: '2px' }} aria-hidden="true">
-    *
-  </span>
-);
+const furnitureTypeSet = [
+  'Bed',
+  'Chair',
+  'Couch',
+  'Desk',
+  'Lamp',
+  'Sofa',
+  'Table',
+  'Other',
+];
 
 const AddListingForm: React.FC<AddListingFormProps> = ({
   onSubmit,
@@ -31,25 +36,12 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
     sellerContact: '',
   });
 
-  const [showCamera, setShowCamera] = useState(false);
-  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [priceError, setPriceError] = useState<string | null>(null);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [submitAttempted, setSubmitAttempted] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    return () => {
-      // Cleanup camera stream on unmount
-      if (cameraStream) {
-        cameraStream.getTracks().forEach((track) => track.stop());
-      }
-    };
-  }, [cameraStream]);
 
   const isFieldInvalid = (field: string) => {
     if (!submitAttempted && !touched[field]) return false;
@@ -121,87 +113,6 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
     reader.readAsDataURL(file);
   }, []);
 
-  // 1. Modified startCamera: Just get the stream and open the modal
-  const startCamera = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        },
-      });
-      setCameraStream(stream);
-      setShowCamera(true);
-    } catch (error) {
-      console.error('Camera error:', error);
-      alert('Camera access denied. Please check your browser settings.');
-    }
-  }, []);
-
-  // 2. Add this EFFECT: This attaches the stream once the <video> element exists
-  useEffect(() => {
-    if (showCamera && videoRef.current && cameraStream) {
-      const video = videoRef.current;
-      video.srcObject = cameraStream;
-
-      const handlePlay = () => {
-        video.play().catch((e) => console.error('Video play failed:', e));
-      };
-
-      video.addEventListener('loadedmetadata', handlePlay);
-      return () => video.removeEventListener('loadedmetadata', handlePlay);
-    }
-  }, [showCamera, cameraStream]);
-
-  const stopCamera = useCallback(() => {
-    if (cameraStream) {
-      cameraStream.getTracks().forEach((track) => track.stop());
-      setCameraStream(null);
-    }
-    setShowCamera(false);
-  }, [cameraStream]);
-
-  const capturePhoto = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current) return;
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
-    if (!context) return;
-
-    // Set canvas to match the VIEWPORT size the user sees
-    const displayWidth = video.clientWidth;
-    const displayHeight = video.clientHeight;
-    canvas.width = displayWidth;
-    canvas.height = displayHeight;
-
-    // Match the CSS 'object-fit: cover' cropping
-    const videoRatio = video.videoWidth / video.videoHeight;
-    const displayRatio = displayWidth / displayHeight;
-
-    let sx = 0,
-      sy = 0,
-      sw = video.videoWidth,
-      sh = video.videoHeight;
-
-    if (videoRatio > displayRatio) {
-      sw = video.videoHeight * displayRatio;
-      sx = (video.videoWidth - sw) / 2;
-    } else {
-      sh = video.videoWidth / displayRatio;
-      sy = (video.videoHeight - sh) / 2;
-    }
-
-    // Draw only the visible portion onto the canvas
-    context.drawImage(video, sx, sy, sw, sh, 0, 0, displayWidth, displayHeight);
-
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-    setImagePreview(dataUrl);
-    setFormData((prev) => ({ ...prev, image: dataUrl }));
-    stopCamera();
-  }, [stopCamera]);
-
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) handleImageFile(file);
@@ -251,7 +162,7 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
   };
 
   return (
-    <div className="modal-overlay" style={{ zIndex: 10000 }}>
+    <div className="modal-overlay">
       <div className="modal">
         <div className="modal-header">
           <h2 className="modal-title">Add New Listing</h2>
@@ -276,7 +187,6 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
             <div className="form-group">
               <label htmlFor="title" className="form-label">
                 Title
-                <RequiredStar />
               </label>
               <input
                 id="title"
@@ -299,7 +209,6 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
             <div className="form-group">
               <label htmlFor="description" className="form-label">
                 Description
-                <RequiredStar />
               </label>
               <textarea
                 id="description"
@@ -309,7 +218,7 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
                 onBlur={() => handleBlur('description')}
                 rows={3}
                 className="form-textarea"
-                placeholder="Dimensions, color, material, age, etc."
+                placeholder="Describe the furniture item in detail..."
                 style={{ border: errorBorder('description') }}
               />
               {isFieldInvalid('description') && (
@@ -420,14 +329,6 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
                   </p>
                 </div>
               )}
-              <button
-                type="button"
-                onClick={startCamera}
-                className="btn btn-secondary"
-                style={{ marginTop: '0.5rem', width: '100%' }}
-              >
-                Take Photo
-              </button>
               <input
                 id="image-upload"
                 ref={fileInputRef}
@@ -442,7 +343,6 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
               <div className="form-group">
                 <label htmlFor="price" className="form-label">
                   Price
-                  <RequiredStar />
                 </label>
                 <input
                   id="price"
@@ -477,7 +377,6 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
               <div className="form-group">
                 <label htmlFor="condition" className="form-label">
                   Condition
-                  <RequiredStar />
                 </label>
                 <select
                   id="condition"
@@ -499,19 +398,23 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
               <div className="form-group">
                 <label htmlFor="furnitureType" className="form-label">
                   Furniture Type
-                  <RequiredStar />
                 </label>
-                <input
+                <select
                   id="furnitureType"
-                  type="text"
                   name="furnitureType"
                   value={formData.furnitureType}
                   onChange={handleChange}
                   onBlur={() => handleBlur('furnitureType')}
                   className="form-input"
-                  placeholder="Chair, Desk, Bookshelf..."
                   style={{ border: errorBorder('furnitureType') }}
-                />
+                >
+                  <option value="">Select Furniture Type</option>
+                  {furnitureTypeSet.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
                 {isFieldInvalid('furnitureType') && (
                   <p
                     style={{ color: '#dc2626', fontSize: '0.8rem', marginTop: '0.25rem' }}
@@ -522,8 +425,7 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
               </div>
               <div className="form-group">
                 <label htmlFor="location" className="form-label">
-                  Address
-                  <RequiredStar />
+                  Location
                 </label>
                 <input
                   id="location"
@@ -533,7 +435,7 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
                   onChange={handleChange}
                   onBlur={() => handleBlur('location')}
                   className="form-input"
-                  placeholder="e.g., 633 Clark St"
+                  placeholder="e.g., Downtown, Campus"
                   style={{ border: errorBorder('location') }}
                 />
                 {isFieldInvalid('location') && (
@@ -549,7 +451,6 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
             <div className="form-group">
               <label htmlFor="deliveryMethod" className="form-label">
                 Delivery Method
-                <RequiredStar />
               </label>
               <select
                 id="deliveryMethod"
@@ -567,7 +468,6 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
             <div className="form-group">
               <label htmlFor="sellerContact" className="form-label">
                 Your Contact Email
-                <RequiredStar />
               </label>
               <input
                 id="sellerContact"
@@ -603,82 +503,6 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
           </form>
         </div>
       </div>
-
-      {showCamera && (
-        <div
-          role="button"
-          tabIndex={0}
-          className="modal-overlay"
-          style={{ zIndex: 1001 }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              stopCamera();
-            }
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') {
-              stopCamera();
-            }
-          }}
-        >
-          <div
-            className="modal"
-            style={{ maxWidth: '500px' }}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="camera-modal-title"
-            tabIndex={-1}
-          >
-            <div className="modal-header">
-              <h2 id="camera-modal-title" className="modal-title">
-                Take Picture
-              </h2>
-              <button
-                type="button"
-                onClick={stopCamera}
-                className="modal-close"
-                aria-label="Close camera modal"
-              >
-                ×
-              </button>
-            </div>
-            <div className="modal-body" style={{ textAlign: 'center' }}>
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                style={{
-                  width: '100%',
-                  height: '350px',
-                  objectFit: 'cover',
-                  borderRadius: '8px',
-                  background: '#000',
-                }}
-              />
-              <canvas ref={canvasRef} style={{ display: 'none' }} />
-              <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
-                <button
-                  type="button"
-                  onClick={capturePhoto}
-                  className="btn btn-primary"
-                  style={{ flex: 1 }}
-                >
-                  Capture Photo
-                </button>
-                <button
-                  type="button"
-                  onClick={stopCamera}
-                  className="btn btn-secondary"
-                  style={{ flex: 1 }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -318,32 +318,33 @@ function App() {
           </div>
           {currentView === 'all' && (
             <div className="control-row">
-              <div className="tag-filters">
-                <button
-                  className={`btn ${selectedFurnitureTypes.length === 0 ? 'active' : ''}`}
-                  onClick={() => setSelectedFurnitureTypes([])}
+              <div>
+                <label htmlFor="furnitureType" className="sort-label">
+                  Furniture Type:
+                </label>
+                <select
+                  id="furnitureType"
+                  value={
+                    selectedFurnitureTypes.length === 0
+                      ? 'all'
+                      : selectedFurnitureTypes[0]
+                  }
+                  onChange={(e) => {
+                    if (e.target.value === 'all') {
+                      setSelectedFurnitureTypes([]);
+                    } else {
+                      setSelectedFurnitureTypes([e.target.value]);
+                    }
+                  }}
+                  className="sort-select"
                 >
-                  All Types
-                </button>
-                {furnitureTypes.map((type) => {
-                  const isChecked = selectedFurnitureTypes.includes(type);
-                  return (
-                    <button
-                      key={type}
-                      className={`btn ${isChecked ? 'active' : ''}`}
-                      onClick={() => {
-                        setSelectedFurnitureTypes((prev) =>
-                          prev.includes(type)
-                            ? prev.filter((t) => t !== type)
-                            : [...prev, type],
-                        );
-                      }}
-                    >
+                  <option value="all">All Types</option>
+                  {furnitureTypes.map((type) => (
+                    <option key={type} value={type}>
                       {type}
-                      {isChecked && ' ✓'}
-                    </button>
-                  );
-                })}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div
                 style={{
