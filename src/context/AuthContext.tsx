@@ -2,9 +2,8 @@ import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import React, { ReactNode, useContext, useEffect, useState } from 'react';
 
 import { upsertUser } from '../api/users';
+import { ALLOWED_EMAIL_DOMAINS } from '../constants/emailDomains';
 import { auth } from '../firebase/firebase';
-
-const ALLOWED_DOMAIN = 'u.northwestern.edu';
 
 interface AuthContextType {
   user: User | null;
@@ -23,7 +22,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (currentUser) {
         // Validate email domain
         const email = currentUser.email;
-        if (!email || !email.endsWith(`@${ALLOWED_DOMAIN}`)) {
+        const isAllowedDomain = ALLOWED_EMAIL_DOMAINS.some((domain) =>
+          email?.toLowerCase().endsWith(domain.toLowerCase()),
+        );
+        if (!email || !isAllowedDomain) {
           // User doesn't have allowed email, sign them out
           await signOut(auth);
           setUser(null);
