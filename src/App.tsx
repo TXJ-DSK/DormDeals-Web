@@ -12,6 +12,7 @@ import ListingDetailsModal from './components/ListingDetailsModal';
 import LoginPage from './components/LoginPage';
 import MapView from './components/MapView';
 import SearchBar from './components/SearchBar';
+import { FURNITURE_TYPES } from './constants/furnitureTypes';
 import { useAuth } from './context/AuthContext';
 import { Listing } from './types/Listing';
 
@@ -94,17 +95,6 @@ function App() {
   if (!user) {
     return <LoginPage />;
   }
-
-  const furnitureTypes = [
-    'Bed',
-    'Chair',
-    'Couch',
-    'Desk',
-    'Lamp',
-    'Sofa',
-    'Table',
-    'Others',
-  ];
 
   const filteredListings = listings
     .filter((listing) => {
@@ -325,7 +315,7 @@ function App() {
                 >
                   All Types
                 </button>
-                {furnitureTypes.map((type) => {
+                {FURNITURE_TYPES.map((type) => {
                   const isChecked = selectedFurnitureTypes.includes(type);
                   return (
                     <button
@@ -497,7 +487,7 @@ function App() {
           onSubmit={handleAddListing}
           onCancel={() => setShowAddForm(false)}
           isSubmitting={isSubmitting}
-          furnitureTypes={furnitureTypes}
+          furnitureTypes={FURNITURE_TYPES}
         />
       )}
 
