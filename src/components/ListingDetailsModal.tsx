@@ -16,7 +16,6 @@ const ListingDetailsModal: React.FC<ListingDetailsModalProps> = ({
   const { user } = useAuth();
   const isOwner = user?.uid === listing.userId;
 
-  const [showContact, setShowContact] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -492,12 +491,10 @@ const ListingDetailsModal: React.FC<ListingDetailsModalProps> = ({
                 </p>
               </div>
 
-              {isOwner && (
-                <div className="form-group">
-                  <div className="form-label">Contact Email</div>
-                  <p style={{ margin: 0, color: '#374151' }}>{listing.sellerContact}</p>
-                </div>
-              )}
+              <div className="form-group">
+                <div className="form-label">Contact Email</div>
+                <p style={{ margin: 0, color: '#374151' }}>{listing.sellerContact}</p>
+              </div>
 
               {/* Owner actions */}
               {isOwner && (
@@ -533,58 +530,6 @@ const ListingDetailsModal: React.FC<ListingDetailsModalProps> = ({
                   >
                     {isDeleting ? 'Deleting...' : 'Delete Listing'}
                   </button>
-                </div>
-              )}
-
-              {/* Message seller — hidden for owner */}
-              {!isOwner && (
-                <div className="form-group">
-                  <button
-                    onClick={() => setShowContact(true)}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem 1rem',
-                      backgroundColor: '#4E2A84',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '0.5rem',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      fontSize: '1rem',
-                    }}
-                  >
-                    Message Seller
-                  </button>
-                </div>
-              )}
-
-              {showContact && (
-                <div
-                  style={{
-                    backgroundColor: '#f0f9ff',
-                    border: '1px solid #bfdbfe',
-                    borderRadius: '0.5rem',
-                    padding: '1rem',
-                    marginTop: '1rem',
-                  }}
-                >
-                  <p
-                    style={{
-                      margin: '0 0 0.5rem 0',
-                      fontWeight: '600',
-                      color: '#1e40af',
-                    }}
-                  >
-                    Seller Contact:
-                  </p>
-                  <p style={{ margin: 0, color: '#0c4a6e', fontSize: '0.95rem' }}>
-                    <a
-                      href={`mailto:${listing.sellerContact}`}
-                      style={{ color: '#0369a1', textDecoration: 'underline' }}
-                    >
-                      {listing.sellerContact}
-                    </a>
-                  </p>
                 </div>
               )}
             </>
