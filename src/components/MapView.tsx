@@ -1,4 +1,4 @@
-import type { Map as LeafletMap } from 'leaflet';
+import type { Map as LeafletMap, Marker } from 'leaflet';
 import React, { useEffect, useRef, useState } from 'react';
 
 import center from '../favicon/center.png';
@@ -88,7 +88,7 @@ const MapView: React.FC<MapViewProps> = ({
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<LeafletMap | null>(null);
   const geocodedListingsRef = useRef<GeocodedListing[]>([]);
-  const markersRef = useRef<[]>([]);
+  const markersRef = useRef<Marker[]>([]);
   const [userCoords, setUserCoords] = useState<{ lat: number; lon: number } | null>(null);
   const [status, setStatus] = useState<string>('Requesting your location…');
   const [leafletLoaded, setLeafletLoaded] = useState(false);
