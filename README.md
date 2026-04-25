@@ -19,27 +19,28 @@ DormDeals is a student marketplace web app for buying and selling furniture. The
   - Posting time: newest first or oldest first
   - Price: low to high or high to low
 - Click a listing card to open a detail modal.
-- In listing details, click Message Seller to reveal hidden seller contact.
 - Click the floating + button in the bottom-right corner to open the Add Listing form.
 - Create a listing with title, description, image upload, type, condition, location, delivery method, price, and seller contact.
+- Map View page where users can view how far a listing is from them in order to judge how far the piece of furniture is from the buyer.
+- Filters on the map-view page to allow users to filter amongst available listings on the map
 
 ## Screenshots
 
 ### Marketplace Page
 
-![Marketplace page](./resources/Market_place_page.png)
+![Marketplace page](./resources/marketplaceFinal.png)
 
 ### Search Bar
 
-![Search bar](./resources/Search_bar.png)
+![Search bar](./resources/searchFinal.png)
 
 ### Filtering by Furniture Type
 
-![Filtering by furniture type](./resources/Filtering_furniture_type.png)
+![Filtering by furniture type](./resources/filterFinal.png)
 
 ### Posting Flow
 
-![Posting a listing](./resources/Posting.png)
+![Posting a listing](./resources/addListingFinal.png)
 
 ## Tech Stack
 
@@ -93,9 +94,4 @@ Implemented:
 - Search, filtering, and sorting controls
 - Listing details modal with reveal-on-click seller contact
 - Add listing flow from the floating + button
-
-Planned next steps (based on app vision):
-
-- Authentication restricted to `@u.northwestern.edu` accounts
-- User-level ownership and listing management
-- Messaging/communication workflow enhancements
+- Map-view page for showing the listings
