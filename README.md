@@ -21,6 +21,7 @@ DormDeals is a student marketplace web app for buying and selling furniture. The
 - Click a listing card to open a detail modal.
 - Click the floating + button in the bottom-right corner to open the Add Listing form.
 - Create a listing with title, description, image upload, type, condition, location, delivery method, price, and seller contact.
+- AI helper in Add Listing form that can generate an attractive title and description from your uploaded/taken furniture photo.
 - Map View page where users can view how far a listing is from them in order to judge how far the piece of furniture is from the buyer.
 - Filters on the map-view page to allow users to filter amongst available listings on the map
 
@@ -73,6 +74,25 @@ npm run dev
 ```
 
 Then open the local URL shown in the terminal (usually `http://localhost:5173`).
+
+### Gemini API Setup (Local Only)
+
+To use AI title/description generation in the Add Listing form, create a local file at project root:
+
+```bash
+.env.local
+```
+
+Add your API key:
+
+```bash
+VITE_GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+Notes:
+
+- `.env.local` is gitignored and should never be committed.
+- Restart the dev server after adding or changing this key.
 
 ## Available Scripts
 

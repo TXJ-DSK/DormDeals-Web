@@ -178,6 +178,7 @@ function App() {
               alignItems: 'center',
               gap: '1rem',
               marginBottom: '2rem',
+              flexWrap: 'wrap',
             }}
           >
             <button

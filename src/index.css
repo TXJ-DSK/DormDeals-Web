@@ -395,3 +395,26 @@ code {
   font-weight: 600;
   padding: 0.35rem 0.65rem;
 }
+
+@media (max-width: 768px) {
+  .search-bar-wrapper {
+    flex-basis: 100% !important;
+    max-width: 100% !important;
+    order: 3;
+    margin-top: 1rem;
+  }
+
+  .header-content > div:first-child > button {
+    order: 1;
+  }
+
+  .header-content > div:first-child > div:last-child {
+    order: 2;
+  }
+}
+
+@media (min-width: 769px) {
+  .search-bar-wrapper {
+    flex: 1 !important;
+  }
+}

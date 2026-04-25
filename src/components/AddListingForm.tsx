@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
+import { generateListingCopyFromImage } from '../api/gemini';
 import { ALLOWED_EMAIL_DOMAINS } from '../constants/emailDomains';
 import { Listing } from '../types/Listing';
 
@@ -56,12 +57,25 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [priceError, setPriceError] = useState<string | null>(null);
+  const [hasEditedPrice, setHasEditedPrice] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [isGeneratingCopy, setIsGeneratingCopy] = useState(false);
+  const [cooldownSecondsLeft, setCooldownSecondsLeft] = useState(0);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (cooldownSecondsLeft <= 0) return;
+
+    const timer = window.setInterval(() => {
+      setCooldownSecondsLeft((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [cooldownSecondsLeft]);
 
   useEffect(() => {
     return () => {
@@ -102,6 +116,7 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
     const { name, value, type } = e.target;
 
     if (name === 'price') {
+      setHasEditedPrice(value !== '');
       const numValue = Number(value);
       if (value === '') {
         setFormData((prev) => ({ ...prev, [name]: 0 }));
@@ -135,6 +150,62 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
         ...prev,
         [name]: type === 'number' ? Number(value) : value,
       }));
+    }
+  };
+
+  const handleGenerateWithGemini = async () => {
+    if (isGeneratingCopy || cooldownSecondsLeft > 0) {
+      return;
+    }
+
+    const missingFields: string[] = [];
+    if (
+      !hasEditedPrice ||
+      !!priceError ||
+      formData.price < 0 ||
+      formData.price > 9999 ||
+      Number.isNaN(formData.price)
+    ) {
+      missingFields.push('Price');
+    }
+    if (!formData.condition.trim()) {
+      missingFields.push('Condition');
+    }
+    if (!formData.image) {
+      missingFields.push('At least one photo');
+    }
+
+    if (missingFields.length > 0) {
+      alert(
+        `Please complete the following before generating with Gemini:\n- ${missingFields.join(
+          '\n- ',
+        )}`,
+      );
+      return;
+    }
+
+    try {
+      setIsGeneratingCopy(true);
+      const generated = await generateListingCopyFromImage({
+        price: formData.price,
+        condition: formData.condition,
+        imageDataUrl: formData.image,
+        furnitureType: formData.furnitureType,
+        location: formData.location,
+      });
+
+      setFormData((prev) => ({
+        ...prev,
+        title: generated.title,
+        description: generated.description,
+      }));
+      setCooldownSecondsLeft(20);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to generate listing copy.';
+      alert(message);
+    } finally {
+      setIsGeneratingCopy(false);
     }
   };
 
@@ -310,6 +381,73 @@ const AddListingForm: React.FC<AddListingFormProps> = ({
         </div>
         <div className="modal-body">
           <form onSubmit={handleSubmit} noValidate>
+            <div
+              className="form-group"
+              style={{
+                border: '1px solid #dbeafe',
+                borderRadius: '0.75rem',
+                padding: '0.9rem',
+                background: '#f8fbff',
+              }}
+            >
+              <p
+                style={{
+                  margin: 0,
+                  color: '#1e3a8a',
+                  fontWeight: 600,
+                  fontSize: '0.95rem',
+                }}
+              >
+                AI listing helper
+              </p>
+              <p
+                style={{
+                  margin: '0.4rem 0 0',
+                  color: '#334155',
+                  fontSize: '0.82rem',
+                  lineHeight: 1.4,
+                }}
+              >
+                Set price and condition, then upload or take a photo. Gemini can generate
+                an attractive title and description for you.
+              </p>
+              <button
+                type="button"
+                onClick={handleGenerateWithGemini}
+                className="btn btn-primary"
+                disabled={isSubmitting || isGeneratingCopy || cooldownSecondsLeft > 0}
+                style={{
+                  marginTop: '0.75rem',
+                  width: '100%',
+                  opacity:
+                    isSubmitting || isGeneratingCopy || cooldownSecondsLeft > 0
+                      ? 0.75
+                      : 1,
+                  cursor:
+                    isSubmitting || isGeneratingCopy || cooldownSecondsLeft > 0
+                      ? 'not-allowed'
+                      : 'pointer',
+                }}
+              >
+                {isGeneratingCopy
+                  ? 'Generating with Gemini...'
+                  : cooldownSecondsLeft > 0
+                    ? `Generate With Gemini (${cooldownSecondsLeft}s)`
+                    : 'Generate Title & Description With Gemini'}
+              </button>
+              {cooldownSecondsLeft > 0 && (
+                <p
+                  style={{
+                    margin: '0.45rem 0 0',
+                    fontSize: '0.78rem',
+                    color: '#475569',
+                  }}
+                >
+                  Cooldown active for {cooldownSecondsLeft}s to avoid duplicate requests.
+                </p>
+              )}
+            </div>
+
             <div className="form-group">
               <label htmlFor="title" className="form-label">
                 Title
