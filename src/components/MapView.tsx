@@ -167,6 +167,8 @@ const MapView: React.FC<MapViewProps> = ({
   useEffect(() => {
     if (!leafletLoaded || !mapRef.current) return;
 
+    setStatus('Plotting listings…');
+
     const L = window.L;
 
     if (mapInstanceRef.current) {
@@ -299,9 +301,9 @@ const MapView: React.FC<MapViewProps> = ({
                 border:2px solid #3b82f6;
                 display:inline-block;
             ">$${listing.price}</div>`,
-        iconSize: undefined,
-        iconAnchor: undefined,
-        popupAnchor: [0, -10],
+        iconSize: [60, 28],
+        iconAnchor: [30, 14],
+        popupAnchor: [0, -16],
       });
 
       const marker = L.marker([coords.lat, coords.lon], { icon: pinIcon }).addTo(map);
