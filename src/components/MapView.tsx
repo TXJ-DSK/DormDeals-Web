@@ -1,4 +1,4 @@
-import type { Map as LeafletMap } from 'leaflet';
+import type { Map as LeafletMap, Marker } from 'leaflet';
 import React, { useEffect, useRef, useState } from 'react';
 
 import center from '../favicon/center.png';
@@ -13,6 +13,13 @@ declare global {
 interface MapViewProps {
   listings: Listing[];
   onSelectListing: (listing: Listing) => void;
+  searchQuery?: string;
+  selectedFurnitureTypes?: string[];
+  maxPrice?: number | string;
+  minConditionIndex?: number;
+  maxConditionIndex?: number;
+  conditions?: string[];
+  isActive?: boolean;
 }
 
 function haversineMiles(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -62,14 +69,55 @@ async function geocode(location: string): Promise<{ lat: number; lon: number } |
   }
 }
 
-const MapView: React.FC<MapViewProps> = ({ listings, onSelectListing }) => {
+interface GeocodedListing {
+  listing: Listing;
+  coords: { lat: number; lon: number } | null;
+}
+
+const MapView: React.FC<MapViewProps> = ({
+  listings,
+  onSelectListing,
+  searchQuery = '',
+  selectedFurnitureTypes = [],
+  maxPrice = '',
+  minConditionIndex = 0,
+  maxConditionIndex = 4,
+  conditions = ['New', 'Like New', 'Good', 'Fair', 'Poor'],
+  isActive = true,
+}) => {
+  // This won't cause crashes because it's just a number
+  const [geocodingFinishedTrigger, setGeocodingFinishedTrigger] = useState(0);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<LeafletMap | null>(null);
+  const geocodedListingsRef = useRef<GeocodedListing[]>([]);
+  const markersRef = useRef<Marker[]>([]);
   const [userCoords, setUserCoords] = useState<{ lat: number; lon: number } | null>(null);
   const [status, setStatus] = useState<string>('Requesting your location…');
   const [leafletLoaded, setLeafletLoaded] = useState(false);
 
   const userCoordsRef = useRef<{ lat: number; lon: number } | null>(null);
+
+  // Filter listings the same way as in App.tsx
+  const filteredListings = listings.filter((listing) => {
+    const query = searchQuery.toLowerCase();
+    const inText =
+      listing.title.toLowerCase().includes(query) ||
+      listing.description.toLowerCase().includes(query) ||
+      listing.location.toLowerCase().includes(query) ||
+      listing.furnitureType.toLowerCase().includes(query);
+
+    const typeFilter =
+      selectedFurnitureTypes.length === 0 ||
+      selectedFurnitureTypes.includes(listing.furnitureType);
+
+    const priceFilter = !maxPrice || listing.price <= parseFloat(maxPrice as string);
+
+    const conditionIndex = conditions.indexOf(listing.condition);
+    const conditionFilter =
+      conditionIndex >= minConditionIndex && conditionIndex <= maxConditionIndex;
+
+    return inText && typeFilter && priceFilter && conditionFilter;
+  });
 
   // Load Leaflet CSS + JS once
   useEffect(() => {
@@ -115,9 +163,11 @@ const MapView: React.FC<MapViewProps> = ({ listings, onSelectListing }) => {
     );
   }, []);
 
-  // Init map and plot listings
+  // Init map once
   useEffect(() => {
     if (!leafletLoaded || !mapRef.current) return;
+
+    setStatus('Plotting listings…');
 
     const L = window.L;
 
@@ -157,108 +207,151 @@ const MapView: React.FC<MapViewProps> = ({ listings, onSelectListing }) => {
         .bindPopup('<strong>📍 You are here</strong>');
     }
 
-    setStatus('Plotting listings…');
-
-    (async () => {
-      // Stagger requests 200ms apart to avoid rate limiting
-      const geocoded: {
-        listing: Listing;
-        coords: { lat: number; lon: number } | null;
-      }[] = [];
-      for (let i = 0; i < listings.length; i++) {
-        if (i > 0) await new Promise((r) => setTimeout(r, 200));
-        const coords = await geocode(listings[i].location);
-        geocoded.push({ listing: listings[i], coords });
-      }
-
-      let plotted = 0;
-      for (const { listing, coords } of geocoded) {
-        if (!coords) continue;
-        plotted++;
-
-        const distanceLine = userCoords
-          ? `<br/><span style="color:#6b7280;font-size:12px;">📏 ${haversineMiles(
-              userCoords.lat,
-              userCoords.lon,
-              coords.lat,
-              coords.lon,
-            ).toFixed(1)} miles away</span>`
-          : '';
-
-        const pinIcon = L.divIcon({
-          className: '',
-          html: `<div style="
-                    background:#1e293b;
-                    color:#fff;
-                    border-radius:8px;
-                    padding:4px 10px;
-                    font-size:12px;
-                    font-weight:600;
-                    white-space:nowrap;
-                    box-shadow:0 2px 8px rgba(0,0,0,0.35);
-                    border:2px solid #3b82f6;
-                    display:inline-block;
-                ">$${listing.price}</div>`,
-          iconSize: undefined,
-          iconAnchor: undefined,
-          popupAnchor: [0, -10],
-        });
-
-        const marker = L.marker([coords.lat, coords.lon], { icon: pinIcon }).addTo(map);
-
-        marker.bindPopup(`
-            <div style="min-width:180px">
-                <strong style="font-size:14px">${listing.title}</strong><br/>
-                <span style="color:#3b82f6;font-weight:600">$${listing.price}</span>
-                &nbsp;·&nbsp;<span style="color:#6b7280;font-size:12px">${listing.condition}</span><br/>
-                <span style="font-size:12px;color:#374151">${listing.location}</span>
-                ${distanceLine}
-                <br/>
-                <button
-                data-listing-id="${listing.id}"
-                style="
-                    margin-top:8px;
-                    width:100%;
-                    padding:6px 0;
-                    background:#3b82f6;
-                    color:#fff;
-                    border:none;
-                    border-radius:6px;
-                    font-size:13px;
-                    font-weight:600;
-                    cursor:pointer;
-                "
-                >View Details</button>
-            </div>
-            `);
-
-        marker.on('popupopen', () => {
-          const popupElement = marker.getPopup()?.getElement();
-          const btn = popupElement?.querySelector(
-            `[data-listing-id="${listing.id}"]`,
-          ) as HTMLButtonElement | null;
-
-          if (!btn) return;
-
-          const handleClick = () => onSelectListing(listing);
-          btn.addEventListener('click', handleClick, { once: true });
-
-          marker.once('popupclose', () => {
-            btn.removeEventListener('click', handleClick);
-          });
-        });
-      }
-
-      setStatus(plotted === 0 ? 'No listings could be mapped.' : '');
-    })();
-
     return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
     };
-  }, [leafletLoaded, userCoords, listings, onSelectListing]);
+  }, [leafletLoaded, userCoords]);
+
+  // Geocode ALL listings once (only when listings array changes AND map view is active)
+  useEffect(() => {
+    if (!leafletLoaded || !isActive) return;
+    let isCancelled = false;
+
+    setStatus('Plotting listings…');
+
+    (async () => {
+      try {
+        if (listings.length === 0) {
+          geocodedListingsRef.current = [];
+          setGeocodingFinishedTrigger((prev) => prev + 1); // Add this!
+          setStatus('');
+          return;
+        }
+
+        // Stagger requests 200ms apart to avoid rate limiting
+        const geocoded: GeocodedListing[] = [];
+        for (let i = 0; i < listings.length; i++) {
+          if (isCancelled) return;
+          if (i > 0) await new Promise((r) => setTimeout(r, 200));
+          const coords = await geocode(listings[i].location);
+          geocoded.push({ listing: listings[i], coords });
+        }
+
+        // geocodedListingsRef.current = geocoded;
+        // setGeocodingFinishedTrigger((prev) => prev + 1); // THE "TELL": Trigger the markers
+        // setStatus('');
+        if (!isCancelled) {
+          geocodedListingsRef.current = geocoded;
+          setGeocodingFinishedTrigger((prev) => prev + 1);
+          setStatus('');
+        }
+      } catch (error) {
+        console.error('Error geocoding listings:', error);
+        setStatus('');
+      }
+    })();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [listings, leafletLoaded, isActive]);
+
+  // Update map markers based on filtered listings (runs when filters change, NOT when geocoding)
+  useEffect(() => {
+    if (!mapInstanceRef.current || !window.L) return;
+
+    const L = window.L;
+    const map = mapInstanceRef.current;
+
+    // Remove old markers
+    markersRef.current.forEach((marker) => marker.remove());
+    markersRef.current = [];
+
+    // Add markers for filtered listings
+    const filteredGeocodedListings = geocodedListingsRef.current.filter((item) =>
+      filteredListings.some((fl) => fl.id === item.listing.id),
+    );
+
+    for (const { listing, coords } of filteredGeocodedListings) {
+      if (!coords) continue;
+
+      const distanceLine = userCoords
+        ? `<br/><span style="color:#6b7280;font-size:12px;">📏 ${haversineMiles(
+            userCoords.lat,
+            userCoords.lon,
+            coords.lat,
+            coords.lon,
+          ).toFixed(1)} miles away</span>`
+        : '';
+
+      const pinIcon = L.divIcon({
+        className: '',
+        html: `<div style="
+                background:#1e293b;
+                color:#fff;
+                border-radius:8px;
+                padding:4px 10px;
+                font-size:12px;
+                font-weight:600;
+                white-space:nowrap;
+                box-shadow:0 2px 8px rgba(0,0,0,0.35);
+                border:2px solid #3b82f6;
+                display:inline-block;
+            ">$${listing.price}</div>`,
+        iconSize: [60, 28],
+        iconAnchor: [30, 14],
+        popupAnchor: [0, -16],
+      });
+
+      const marker = L.marker([coords.lat, coords.lon], { icon: pinIcon }).addTo(map);
+      markersRef.current.push(marker);
+
+      marker.bindPopup(`
+        <div style="min-width:180px">
+            <strong style="font-size:14px">${listing.title}</strong><br/>
+            <span style="color:#3b82f6;font-weight:600">$${listing.price}</span>
+            &nbsp;·&nbsp;<span style="color:#6b7280;font-size:12px">${listing.condition}</span><br/>
+            <span style="font-size:12px;color:#374151">${listing.location}</span>
+            ${distanceLine}
+            <br/>
+            <button
+            data-listing-id="${listing.id}"
+            style="
+                margin-top:8px;
+                width:100%;
+                padding:6px 0;
+                background:#3b82f6;
+                color:#fff;
+                border:none;
+                border-radius:6px;
+                font-size:13px;
+                font-weight:600;
+                cursor:pointer;
+            "
+            >View Details</button>
+        </div>
+        `);
+
+      marker.on('popupopen', () => {
+        const popupElement = marker.getPopup()?.getElement();
+        const btn = popupElement?.querySelector(
+          `[data-listing-id="${listing.id}"]`,
+        ) as HTMLButtonElement | null;
+
+        if (!btn) return;
+
+        const handleClick = () => onSelectListing(listing);
+        btn.addEventListener('click', handleClick, { once: true });
+
+        marker.once('popupclose', () => {
+          btn.removeEventListener('click', handleClick);
+        });
+      });
+    }
+  }, [filteredListings, userCoords, onSelectListing, geocodingFinishedTrigger]);
 
   return (
     <div style={{ position: 'relative', height: '100%', minHeight: '500px' }}>

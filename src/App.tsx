@@ -289,7 +289,15 @@ function App() {
               My Furniture
             </button>
             <button
-              onClick={() => setCurrentView('map')}
+              onClick={() => {
+                setCurrentView('map');
+                // Reset filters to show all listings when opening map view
+                setSearchQuery('');
+                setSelectedFurnitureTypes([]);
+                setMaxPrice('');
+                setMinConditionIndex(0);
+                setMaxConditionIndex(4);
+              }}
               style={{
                 padding: '0.5rem 1rem',
                 fontSize: '14px',
@@ -389,6 +397,84 @@ function App() {
               </div>
             </div>
           )}
+          {currentView === 'map' && (
+            <div className="control-row">
+              <div className="tag-filters">
+                <button
+                  className={`btn ${selectedFurnitureTypes.length === 0 ? 'active' : ''}`}
+                  onClick={() => setSelectedFurnitureTypes([])}
+                >
+                  All Types
+                </button>
+                {FURNITURE_TYPES.map((type) => {
+                  const isChecked = selectedFurnitureTypes.includes(type);
+                  return (
+                    <button
+                      key={type}
+                      className={`btn ${isChecked ? 'active' : ''}`}
+                      onClick={() => {
+                        setSelectedFurnitureTypes((prev) =>
+                          prev.includes(type)
+                            ? prev.filter((t) => t !== type)
+                            : [...prev, type],
+                        );
+                      }}
+                    >
+                      {type}
+                      {isChecked && ' ✓'}
+                    </button>
+                  );
+                })}
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '1rem',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div>
+                  <label htmlFor="maxPrice-map" className="sort-label">
+                    Max Price:
+                  </label>
+                  <input
+                    id="maxPrice-map"
+                    type="number"
+                    value={maxPrice}
+                    onChange={(e) => setMaxPrice(e.target.value)}
+                    placeholder="Enter max $"
+                    className="sort-select"
+                    style={{ width: '100px' }}
+                  />
+                </div>
+                <ConditionRangeFilter
+                  minIndex={minConditionIndex}
+                  maxIndex={maxConditionIndex}
+                  conditions={conditions}
+                  onChange={(minIdx, maxIdx) => {
+                    setMinConditionIndex(minIdx);
+                    setMaxConditionIndex(maxIdx);
+                  }}
+                />
+                <button
+                  onClick={handleResetFilters}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: 'rgba(255,255,255,0.1)',
+                    color: '#fff',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                  }}
+                >
+                  Reset Filters
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
@@ -422,7 +508,17 @@ function App() {
             >
               Map View active
             </span>
-            <MapView listings={listings} onSelectListing={setSelectedListing} />
+            <MapView
+              listings={listings}
+              onSelectListing={setSelectedListing}
+              searchQuery={searchQuery}
+              selectedFurnitureTypes={selectedFurnitureTypes}
+              maxPrice={maxPrice}
+              minConditionIndex={minConditionIndex}
+              maxConditionIndex={maxConditionIndex}
+              conditions={conditions}
+              isActive={currentView === 'map'}
+            />
           </div>
         ) : listingsLoading ? (
           <div className="empty-state">
