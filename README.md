@@ -42,6 +42,8 @@ DormDeals is a student marketplace web app for buying and selling furniture. The
 
 ![Posting a listing](./resources/addListingFinal.png)
 
+### Map-View Flow
+
 ## Tech Stack
 
 - React + TypeScript
